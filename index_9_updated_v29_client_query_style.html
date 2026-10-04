@@ -1,0 +1,1981 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Campaign Intake & Query Generator</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#172033;font:14px Arial,sans-serif}
+.wrap{max-width:1150px;margin:auto;padding:24px 16px 60px}.hero{background:#2563eb;color:#fff;border-radius:16px;padding:25px;margin-bottom:18px}
+.hero h1{margin:0 0 6px;font-size:26px}.hero p{margin:0;opacity:.9}.card{background:#fff;border:1px solid #dfe4ec;border-radius:14px;padding:20px;margin:16px 0}
+h2{font-size:19px;margin:0 0 17px}h3{font-size:15px;margin:20px 0 12px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}label{font-weight:700;font-size:13px}
+select,input{padding:10px;border:1px solid #cfd6e2;border-radius:8px;font:inherit;background:#fff}.hidden{display:none!important}.inline-field{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;align-items:end}.inline-field .field{min-width:0}
+.sub{background:#f8fafc;border:1px solid #e4e7ec;border-radius:10px;padding:14px;margin-top:12px}
+.output{background:#101828;color:#f2f4f7;border-radius:10px;padding:16px;white-space:pre-wrap;line-height:1.6;min-height:75px}
+.empty{color:#98a2b3}.btns{display:flex;gap:9px;flex-wrap:wrap;margin-top:10px}
+button{border:0;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer}.primary{background:#2563eb;color:#fff}.secondary{background:#eef2f6;color:#344054}
+.note{background:#eff8ff;border:1px solid #b2ddff;color:#175cd3;padding:10px;border-radius:8px;font-size:12px;margin-top:10px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.wrap{padding:12px 9px}}.wrap{max-width:1180px;margin:0 auto}
+.campaignMetaGrid{margin-top:14px;align-items:start}
+.campaignMetaGrid .hidden{display:none!important}
+@media(min-width:901px){
+  .campaignMetaGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .campaignMetaGrid .inline-field{min-width:0}
+}
+.card{max-width:100%;box-sizing:border-box}
+.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.field{min-width:0}
+.field input,.field select,.field textarea{width:100%;box-sizing:border-box}
+.sub{width:100%;box-sizing:border-box}
+.btns{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.note{line-height:1.45}
+.namePickerCard{width:min(980px,calc(100vw - 40px))}
+@media(min-width:1100px){
+  .wrap{padding-left:28px;padding-right:28px}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .inline-field{grid-template-columns:minmax(240px,1fr) minmax(260px,1.25fr)}
+}
+@media(max-width:900px){
+  .wrap{padding:16px}
+  .grid{grid-template-columns:1fr}
+  .inline-field{grid-template-columns:1fr}
+}
+
+.aiCard{margin-top:18px;background:#f8fafc;border:1px solid #dfe4ec;border-radius:10px;padding:14px}
+.aiGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end}
+.aiOutput{background:#fff;color:#172033;border:1px solid #dfe4ec;border-radius:10px;padding:14px;white-space:pre-wrap;line-height:1.6;min-height:75px;margin-top:10px}
+.aiStatus{font-size:12px;color:#667085;margin-top:8px}
+.aiWarn{background:#fffaeb;border:1px solid #fedf89;color:#92400e;padding:9px;border-radius:8px;font-size:12px;margin-top:10px}
+.aiBusy{opacity:.65;pointer-events:none}
+.customObs{width:100%;min-height:120px;resize:vertical;padding:10px;border:1px solid #cfd6e2;border-radius:8px;font:inherit;background:#fff;box-sizing:border-box}
+@media(max-width:700px){.aiGrid{grid-template-columns:1fr}}
+
+.namePickerBtn{background:#7f56d9;color:#fff}
+.namePickerModal{position:fixed;inset:0;background:rgba(16,24,40,.55);display:flex;align-items:center;justify-content:center;padding:18px;z-index:9999}
+.namePickerModal.hidden{display:none!important}
+.namePickerCard{background:#fff;width:min(900px,100%);max-height:90vh;overflow:auto;border-radius:14px;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.2)}
+.namePickerHeader{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.namePickerHeader h2{margin:0 0 5px}
+.closePicker{background:#eef2f6;color:#344054;margin:0;padding:7px 10px}
+.pickerOutputs{margin-top:16px}
+.pickerNameRow{display:grid;grid-template-columns:190px 1fr auto;gap:9px;align-items:center;border-bottom:1px solid #eaecf0;padding:9px 0}
+.pickerNameValue{font-family:Consolas,monospace;background:#f8fafc;padding:9px;border-radius:6px;word-break:break-all}
+.pickNameBtn{background:#eaf2ff;color:#175cd3;margin:0}
+.pickerStatus{font-size:12px;color:#667085;margin-top:8px}
+@media(max-width:700px){.pickerNameRow{grid-template-columns:1fr}.namePickerModal{padding:8px}}
+
+
+.utmBuilder{margin-top:10px}
+.utmRow{background:#fff;border:1px solid #dfe4ec;border-radius:10px;padding:12px;margin-top:10px}
+.utmRowGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.utmFull{grid-column:1/-1}
+.utmFinal{margin-top:10px;background:#101828;color:#f2f4f7;border-radius:8px;padding:10px;word-break:break-all;font-family:Consolas,monospace;font-size:12px;min-height:18px}
+.utmRowActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.utmOpenBtn{background:#eaf2ff;color:#175cd3}
+.utmCopyBtn{background:#eef2f6;color:#344054}
+.utmRemove{background:#fff1f3;color:#b42318}
+@media(max-width:700px){.utmRowGrid{grid-template-columns:1fr}.utmFull{grid-column:auto}}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="hero"><h1>Campaign Intake & Query Generator</h1><p>Generate consolidated, client-ready SFMC and HTML queries.</p></div>
+
+<section class="card">
+<h2>1. Request Type</h2>
+<div class="field"><label>What type of request is this?</label>
+<select id="requestType">
+<option value="">Select...</option><option value="both">SFMC + HTML</option><option value="html">HTML Only</option>
+</select></div>
+</section>
+
+<section id="sfmcSection" class="card hidden">
+<h2>2. SFMC Details</h2>
+
+<h3>Campaign Information</h3>
+<div class="grid">
+<div class="field"><label>BU Unit (for checklist)</label><input id="buUnit" placeholder="e.g. US Radiology"></div>
+<div class="btns" style="grid-column:1/-1;margin-top:2px;margin-bottom:4px">
+<button type="button" class="namePickerBtn" id="openNamePicker">Pick Journey & Email Names from Campaign Naming Tool</button>
+</div>
+<div class="field"><label>Campaign / Journey Name (for checklist)</label><input id="campaignJourneyName" placeholder="e.g. US_TBD_2026_001a_Our_Value_Adds_Up_in_CT_Q2"></div>
+<div class="field"><label>Campaign Name (for checklist)</label><input id="campaignName" placeholder="e.g. Our_Value_Adds_Up_in_CT_Q2"></div>
+</div>
+
+<h3>Initial / A-B Decision</h3>
+<div class="grid">
+<div class="field"><label>Is A/B Testing present?</label><select id="abTest"><option value="">Select...</option><option value="no">No</option><option value="yes">Yes</option></select></div>
+<div class="field"><label>Is a Reminder email present?</label><select id="reminder"><option value="">Select...</option><option value="no">No</option><option value="yes">Yes</option></select></div>
+<div class="field" id="resendNonOpenersField"><label>Resend Email to Non-Openers</label><select id="resendNonOpeners" disabled><option value="">Select...</option><option value="yes">Provided</option><option value="no">Not Provided</option></select></div>
+</div>
+
+<div id="singleNoReminder" class="sub hidden">
+<h3 style="margin-top:0">Initial Subject Line & Preheader</h3>
+<div class="grid">
+<div class="inline-field"><div class="field"><label>Initial Subject Line</label><select id="initialSL"><option value="">Select...</option><option value="provided">Provided</option><option value="missing">Not Provided</option><option value="multiple">Multiple Provided</option></select></div><div id="initialSLValueField" class="field hidden"><label>Subject Line</label><input id="initialSLValue" placeholder="Enter Subject Line"></div></div>
+<div class="inline-field"><div class="field"><label>Initial Preheader</label><select id="initialPH"><option value="">Select...</option><option value="provided">Provided</option><option value="missing">Not Provided</option><option value="multiple">Multiple Provided</option><option value="none">Explicitly Don't Use</option></select></div><div id="initialPHValueField" class="field hidden"><label>Preheader</label><input id="initialPHValue" placeholder="Enter Preheader"></div></div>
+</div>
+</div>
+
+<div id="nonAbReminder" class="sub hidden">
+<h3 style="margin-top:0">Initial & Reminder Subject Line / Preheader</h3>
+<div class="grid">
+<div class="inline-field"><div class="field"><label>Initial Subject Line</label><select id="iRSL"><option value="">Select...</option><option value="provided">Provided</option><option value="missing">Not Provided</option><option value="multiple">Multiple Provided</option></select></div><div id="iRSLValueField" class="field hidden"><label>Subject Line</label><input id="iRSLValue" placeholder="Enter Subject Line"></div></div>
+<div class="inline-field"><div class="field"><label>Initial Preheader</label><select id="iRPH"><option value="">Select...</option><option value="provided">Provided</option><option value="missing">Not Provided</option><option value="multiple">Multiple Provided</option><option value="none">Explicitly Don't Use</option></select></div><div id="iRPHValueField" class="field hidden"><label>Preheader</label><input id="iRPHValue" placeholder="Enter Preheader"></div></div>
+<div class="inline-field"><div class="field"><label>Reminder Subject Line</label><select id="rSL"><option value="">Select...</option><option value="provided">Provided</option><option value="missing">Not Provided</option></select></div><div id="rSLValueField" class="field hidden"><label>Subject Line</label><input id="rSLValue" placeholder="Enter Subject Line"></div></div>
+<div class="inline-field"><div class="field"><label>Reminder Preheader</label><select id="rPH"><option value="">Select...</option><option value="provided">Provided</option><option value="missing">Not Provided</option><option value="none">Explicitly Don't Use</option></select></div><div id="rPHValueField" class="field hidden"><label>Preheader</label><input id="rPHValue" placeholder="Enter Preheader"></div></div>
+</div>
+<div class="note">If Initial Subject Line/Preheader is Not Provided or Multiple Provided, the Reminder follows the same status and is not asked again. If Initial is Provided, the tool asks only whether the Reminder is Provided or Not Provided.</div>
+</div>
+
+<div id="abFields" class="sub hidden">
+<h3 style="margin-top:0">A/B Test Subject Lines & Preheaders</h3>
+<div class="grid">
+<div class="inline-field"><div class="field"><label>Variant A – Subject Line (SLA)</label><select id="aSL"><option value="">Select...</option><option value="provided">Provided</option><option value="missing">Not Provided</option><option value="multiple">Multiple Provided</option></select></div><div id="aSLValueField" class="field hidden"><label>Subject Line (SLA)</label><input id="aSLValue" placeholder="Enter Subject Line"></div></div>
+<div class="inline-field"><div class="field"><label>Variant A – Preheader (PHA)</label><select id="aPH"><option value="">Select...</option><option value="provided">Provided</option><option value="missing">Not Provided</option><option value="multiple">Multiple Provided</option><option value="none">Explicitly Don't Use</option></select></div><div id="aPHValueField" class="field hidden"><label>Preheader (PHA)</label><input id="aPHValue" placeholder="Enter Preheader"></div></div>
+<div class="inline-field"><div class="field"><label>Variant B – Subject Line (SLB)</label><select id="bSL"><option value="">Select...</option><option value="provided">Provided</option><option value="missing">Not Provided</option><option value="multiple">Multiple Provided</option></select></div><div id="bSLValueField" class="field hidden"><label>Subject Line (SLB)</label><input id="bSLValue" placeholder="Enter Subject Line"></div></div>
+<div class="inline-field"><div class="field"><label>Variant B – Preheader (PHB)</label><select id="bPH"><option value="">Select...</option><option value="provided">Provided</option><option value="missing">Not Provided</option><option value="multiple">Multiple Provided</option><option value="none">Explicitly Don't Use</option></select></div><div id="bPHValueField" class="field hidden"><label>Preheader (PHB)</label><input id="bPHValue" placeholder="Enter Preheader"></div></div>
+</div>
+<div id="abReminderSLPH" class="sub hidden">
+<h3 style="margin-top:0">A/B Reminder Subject Line & Preheader</h3>
+<div class="grid">
+<div class="inline-field"><div class="field"><label>Reminder A – Subject Line</label><select id="arSL"><option value="">Select...</option></select></div><div id="arSLValueField" class="field hidden"><label>Reminder A – Subject Line</label><input id="arSLValue" placeholder="Enter Reminder A Subject Line"></div></div>
+<div class="inline-field"><div class="field"><label>Reminder A – Preheader</label><select id="arPH"><option value="">Select...</option></select></div><div id="arPHValueField" class="field hidden"><label>Reminder A – Preheader</label><input id="arPHValue" placeholder="Enter Reminder A Preheader"></div></div>
+<div class="inline-field"><div class="field"><label>Reminder B – Subject Line</label><select id="brSL"><option value="">Select...</option></select></div><div id="brSLValueField" class="field hidden"><label>Reminder B – Subject Line</label><input id="brSLValue" placeholder="Enter Reminder B Subject Line"></div></div>
+<div class="inline-field"><div class="field"><label>Reminder B – Preheader</label><select id="brPH"><option value="">Select...</option></select></div><div id="brPHValueField" class="field hidden"><label>Reminder B – Preheader</label><input id="brPHValue" placeholder="Enter Reminder B Preheader"></div></div>
+</div>
+<div class="note">Reminder A maps to Initial Variant B, and Reminder B maps to Initial Variant A. “Same as Initial” is available only when the corresponding Initial value is actually provided.</div>
+</div>
+</div>
+
+<div id="emailNamesSection" class="sub hidden">
+<h3 style="margin-top:0">Email Name(s)</h3>
+<div class="note">The required Email Name fields are based on the Initial / Reminder and A/B Test selections above. You can use the Journey & Email Name Picker above to populate these fields automatically.</div>
+<div id="emailNamesNoReminderNoAB" class="sub hidden">
+  <div class="field"><label>Initial Email Name</label><input id="emailInitialName" placeholder="Enter Initial Email Name"></div>
+</div>
+<div id="emailNamesReminderNoAB" class="sub hidden">
+  <div class="grid">
+    <div class="field"><label>Initial Email Name</label><input id="emailInitialNameR" placeholder="Enter Initial Email Name"></div>
+    <div class="field"><label>Reminder Email Name</label><input id="emailReminderNameR" placeholder="Enter Reminder Email Name"></div>
+  </div>
+</div>
+<div id="emailNamesABNoReminder" class="sub hidden">
+  <div class="grid">
+    <div class="field"><label>Initial Email Name – Variant A</label><input id="emailInitialAName" placeholder="Enter Variant A Email Name"></div>
+    <div class="field"><label>Initial Email Name – Variant B</label><input id="emailInitialBName" placeholder="Enter Variant B Email Name"></div>
+  </div>
+</div>
+<div id="emailNamesABReminder" class="sub hidden">
+  <h3 style="margin-top:0">Initial Email Names</h3>
+  <div class="grid">
+    <div class="field"><label>Initial Email Name – Variant A</label><input id="emailInitialARName" placeholder="Enter Initial Variant A Email Name"></div>
+    <div class="field"><label>Initial Email Name – Variant B</label><input id="emailInitialBRName" placeholder="Enter Initial Variant B Email Name"></div>
+  </div>
+  <h3>Reminder Email Names</h3>
+  <div class="grid">
+    <div class="field"><label>Reminder Email Name – Variant A</label><input id="emailReminderARName" placeholder="Enter Reminder Variant A Email Name"></div>
+    <div class="field"><label>Reminder Email Name – Variant B</label><input id="emailReminderBRName" placeholder="Enter Reminder Variant B Email Name"></div>
+  </div>
+</div>
+</div>
+<div class="grid campaignMetaGrid">
+<div class="field"><label>Brand Name Provided?</label><select id="brandProvided"><option value="">Select...</option><option value="yes">Provided</option><option value="no">Not Provided</option></select></div>
+<div id="brandNameField" class="field hidden"><label>Brand Name</label><input id="brandName" placeholder="e.g. Ambelvist"></div>
+<div class="field"><label>Target Audience (TA)</label><select id="ta"><option value="">Select...</option><option value="yes">Provided</option><option value="no">Not Provided</option></select></div>
+<div id="taAzureField" class="field hidden"><label>Does Azure mention TA will be provided?</label><select id="taAzure"><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+<div id="contactField" class="field hidden"><label>Contact IDs provided for TA?</label><select id="contactId"><option value="">Select...</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+<div class="field"><label>PRT in Figma/PDF</label><input id="assetPrt" placeholder="e.g. 123"></div>
+<div class="field"><label>PRT in Azure</label><input id="azurePrt" placeholder="e.g. 456"></div>
+ <div class="field"><label>Exclusion / Suppression List</label><select id="exclusionList"><option value="">Select...</option><option value="yes">Provided</option><option value="no">Not Provided</option><option value="na">Not Applicable</option></select></div>
+<div class="field"><label>Test List Audience</label><input id="testListAudienceDetails" placeholder="Enter test list audience / Azure details"></div>
+<div class="field"><label>Journey Road Map Given</label><select id="journeyRoadmap"><option value="">Select...</option><option value="yes">Provided</option><option value="no">Not Provided</option><option value="na">Not Applicable</option></select></div>
+<div class="field"><label>Figma URL</label><input id="figmaUrl" placeholder="https://www.figma.com/..."></div>
+<div class="inline-field"><div class="field"><label>Sender Profile mentioned in Azure</label><select id="senderProfile"><option value="">Select...</option><option value="correct">Provided / Correct</option><option value="missing">Not Provided</option><option value="incorrect">Provided / Incorrect</option></select></div><div id="senderProfileNameField" class="field hidden"><label>Sender Profile Name</label><input id="senderProfileName" placeholder="e.g. Bayer Radiology"></div>
+</div>
+</div>
+
+<h3>Launch Details</h3>
+<div class="grid">
+<div class="inline-field"><div class="field"><label>Initial Launch Date</label><select id="initialDate"><option value="">Select...</option><option value="provided">Provided</option><option value="missing">Not Provided</option></select></div><div id="initialDateValueField" class="field hidden"><label>Launch Date</label><input id="initialDateValue" type="date"></div></div>
+<div class="inline-field"><div class="field"><label>Initial Launch Time</label><select id="initialTime"><option value="">Select...</option><option value="provided">Provided / Correct</option><option value="12am">Mentioned as 12:00 AM</option><option value="missing">Not Provided</option></select></div><div id="initialTimeValueField" class="field hidden"><label>Launch Time (EST)</label><div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:6px"><select id="initialTimeHour"><option value="">HH</option><option>01</option><option>02</option><option>03</option><option>04</option><option>05</option><option>06</option><option>07</option><option>08</option><option>09</option><option>10</option><option>11</option><option>12</option></select><select id="initialTimeMinute"><option value="">MM</option><option>00</option><option>05</option><option>10</option><option>15</option><option>20</option><option>25</option><option>30</option><option>35</option><option>40</option><option>45</option><option>50</option><option>55</option></select><select id="initialTimeAmPm"><option value="">AM/PM</option><option>AM</option><option>PM</option></select></div></div></div>
+<div id="remDateField" class="inline-field hidden"><div class="field"><label>Reminder Launch Date</label><select id="remDate"><option value="">Select...</option><option value="provided">Provided</option><option value="missing">Not Provided</option></select></div><div id="remDateValueField" class="field hidden"><label>Reminder Date</label><input id="remDateValue" type="date"></div></div>
+<div id="remTimeField" class="inline-field hidden"><div class="field"><label>Reminder Launch Time</label><select id="remTime"><option value="">Select...</option><option value="provided">Provided / Correct</option><option value="12am">Mentioned as 12:00 AM</option><option value="missing">Not Provided</option></select></div><div id="remTimeValueField" class="field hidden"><label>Reminder Time (EST)</label><div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:6px"><select id="remTimeHour"><option value="">HH</option><option>01</option><option>02</option><option>03</option><option>04</option><option>05</option><option>06</option><option>07</option><option>08</option><option>09</option><option>10</option><option>11</option><option>12</option></select><select id="remTimeMinute"><option value="">MM</option><option>00</option><option>05</option><option>10</option><option>15</option><option>20</option><option>25</option><option>30</option><option>35</option><option>40</option><option>45</option><option>50</option><option>55</option></select><select id="remTimeAmPm"><option value="">AM/PM</option><option>AM</option><option>PM</option></select></div></div></div>
+</div>
+</section>
+
+<section id="htmlSection" class="card hidden">
+<h2>3. HTML Details</h2>
+<div class="grid">
+<div class="field"><label>Campaign Images</label><select id="images"><option value="">Select...</option><option value="yes">Provided / Extracted</option><option value="pdfOnly">Only PDF provided and images cannot be extracted</option><option value="no">Not Provided</option></select></div>
+<div id="unsubscribeBlock" class="sub hidden">
+<div class="field"><label>Unsubscribe / Update Preference</label>
+<select id="unsubscribe">
+<option value="">Select...</option>
+<option value="unsubscribe">Unsubscribe</option>
+<option value="update">Update Preferences</option>
+<option value="no">Not Present</option>
+</select></div>
+
+<div id="unsubscribeUrlTypeField" class="field hidden">
+<label id="unsubscribeUrlTypeLabel">Unsubscribe URL</label>
+<select id="unsubscribeUrlType">
+<option value="">Select...</option>
+<option value="standard">Standard Radiology Unsubscribe</option>
+<option value="other">Other Unsubscribe</option>
+</select>
+</div>
+
+<div id="unsubscribeUrlField" class="field hidden">
+<label id="unsubscribeUrlLabel">Other Unsubscribe URL / Text</label>
+<input id="unsubscribeUrl" placeholder="Enter URL or required text">
+</div>
+
+<div id="updateUrlTypeField" class="field hidden">
+<label>Update Preference URL</label>
+<select id="updateUrlType">
+<option value="">Select...</option>
+<option value="standard">Standard Radiology Unsubscribe</option>
+<option value="other">Other Update Preference</option>
+</select>
+</div>
+
+<div id="updateUrlField" class="field hidden">
+<label>Other Update Preference URL / Text</label>
+<input id="updateUrl" placeholder="Enter URL or required text">
+</div>
+
+<div id="unsubscribeConfirmationField" class="field hidden">
+<label>Confirmation Required?</label>
+<select id="unsubscribeConfirmation">
+<option value="">Select...</option>
+<option value="yes">Yes - Need Confirmation</option>
+<option value="no">No</option>
+</select>
+</div>
+</div>
+<div class="field"><label>Links</label><select id="links"><option value="">Select...</option><option value="yes">All Provided</option><option value="missing">No / Some Missing</option><option value="error">Provided but redirects to error page</option></select></div>
+<div id="linkDetailField" class="field hidden"><label>Link / CTA details</label><input id="linkDetail" placeholder="e.g. Learn More - URL"></div>
+<div class="field"><label>UTM Parameters</label><select id="utm"><option value="">Select...</option><option value="yes">Provided</option><option value="no">Not Provided</option></select></div>
+<div id="utmBuilderControl" class="btns hidden">
+<button type="button" class="secondary utmOpenBtn" id="openUtmBuilder">Open UTM Link Builder</button>
+</div>
+<div id="utmBuilder" class="sub utmBuilder hidden">
+<h3 style="margin-top:0">UTM Link Builder</h3>
+<div class="note">Add one or more links and enter the UTM values. The final URL is generated automatically for each row.</div>
+<div id="utmRows"></div>
+<div class="btns">
+<button type="button" class="primary" id="addUtmRow">+ Add Link</button>
+<button type="button" class="secondary" id="copyUtmLinks">Copy Generated URLs</button>
+</div>
+</div>
+<div class="field"><label>Bayer Address</label><select id="address"><option value="">Select...</option><option value="yes">Present</option><option value="no">Not Present</option></select></div>
+<div class="field"><label>Mobile Version Provided</label><select id="mobileVersion"><option value="">Select...</option><option value="yes">Provided</option><option value="no">Not Provided</option></select></div>
+<div class="field"><label>Mobile Number</label><select id="mobile"><option value="">Select...</option><option value="yes">Present</option><option value="no">Not Present</option></select></div>
+</div>
+<div id="mobileNote" class="note hidden">The mobile number will be made clickable using a tel: link.</div>
+</section>
+
+<section id="outputSection" class="card hidden">
+<h2>4. Generated Client Queries</h2>
+<div class="aiCard">
+<h3 style="margin-top:0">✨ AI Rephrasing</h3>
+<div class="aiGrid">
+<div class="field"><label>Gemini Model</label><input id="aiModel" value="gemini-3.5-flash-lite" placeholder="e.g. gemini-3.5-flash-lite"></div>
+<div class="field"><label>Gemini API Key</label><div style="display:flex;gap:8px;align-items:center"><input id="geminiApiKey" type="password" autocomplete="off" placeholder="Paste your Gemini API key here" style="flex:1"><button type="button" class="secondary" id="clearGeminiKey" style="white-space:nowrap">Clear Saved Key</button></div></div>
+</div>
+<div class="aiWarn">Your Gemini API key is stored only in this browser's local storage after you enter it. It is not written into the HTML file or GitHub. Use your own key when sharing this tool with teammates.</div>
+<div style="font-size:12px;margin-top:8px"><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">🔑 Don't have a Gemini API key? Get one from Google AI Studio →</a><br><span style="color:#667085">Sign in with your Google account, create an API key, then paste it above. You can use your own key when sharing this tool.</span></div>
+<div class="aiStatus" id="aiStatus">AI rephrasing is optional. Existing query generation works without AI. Enter your Gemini API key above before using AI rephrasing.</div>
+</div>
+
+<div id="sfmcOutWrap"><h3>SFMC Queries</h3><div id="sfmcOutput" class="output empty">No SFMC queries generated from the selected inputs.</div><div class="btns"><button class="primary" id="copySfmc">Copy SFMC Queries</button><button class="secondary" id="rephraseSfmc">✨ Rephrase SFMC with AI</button></div><div id="sfmcAiOutput" class="aiOutput empty hidden"></div><div class="btns hidden" id="sfmcAiBtns"><button class="secondary" id="copySfmcAi">Copy Rephrased SFMC</button><button class="secondary" id="pickSfmcAi">Pick Rephrased SFMC</button></div></div>
+
+<div id="htmlOutWrap"><h3>HTML Queries</h3><div id="htmlOutput" class="output empty">No HTML queries generated from the selected inputs.</div><div class="btns"><button class="primary" id="copyHtml">Copy HTML Queries</button><button class="secondary" id="rephraseHtml">✨ Rephrase HTML with AI</button></div><div id="htmlAiOutput" class="aiOutput empty hidden"></div><div class="btns hidden" id="htmlAiBtns"><button class="secondary" id="copyHtmlAi">Copy Rephrased HTML</button><button class="secondary" id="pickHtmlAi">Pick Rephrased HTML</button></div></div>
+
+<div class="aiCard">
+<h3 style="margin-top:0">Additional Observations</h3>
+<div class="note">Enter one extra observation per line. Each line will be treated as a separate client query.</div>
+<textarea id="customObservations" class="customObs" placeholder="e.g.
+The button doesn't look same as Figma
+Footer spacing looks different
+Image quality is low"></textarea>
+<div class="btns"><button class="secondary" id="rephraseObservations">✨ Rephrase Observations with AI</button><button class="secondary" id="clearObservations">Clear</button></div>
+<div id="observationAiOutput" class="aiOutput empty hidden"></div>
+<div class="btns hidden" id="observationAiBtns"><button class="secondary" id="copyObservationAi">Copy Rephrased Observations</button><button class="secondary" id="pickObservationAi">Pick Rephrased Observations</button></div>
+</div>
+
+<div class="btns"><button class="primary" id="rephraseAll">✨ Rephrase All with AI</button><button class="primary" id="copyAll">Copy All Queries</button><button class="secondary" id="exportXlsx">Export Intake Checklist (.xlsx)</button><button class="secondary" id="exportDocx">Export Issues Document (.docx)</button><button class="secondary" id="reset">Reset</button></div>
+<div class="note">The XLSX is generated from the current intake selections and contains the checklist points, completeness, correctness and details. The DOCX contains only the issues/queries generated from the current selections.</div>
+</section>
+</div>
+
+
+<div id="namePickerModal" class="namePickerModal hidden">
+  <div class="namePickerCard">
+    <div class="namePickerHeader">
+      <div>
+        <h2>Journey & Email Name Picker</h2>
+        <div class="pickerStatus">Optional: generate names using the same naming logic and select only the Journey Name and Email Name(s) you need for this intake.</div>
+      </div>
+      <button type="button" class="closePicker" id="closeNamePicker">✕</button>
+    </div>
+
+    <div class="card" style="margin:16px 0 0;padding:16px">
+      <h3 style="margin-top:0">Naming Inputs</h3>
+      <div class="grid">
+        <div class="field"><label>Country</label><select id="npCountry"><option value="US">US</option><option value="CA">Canada</option></select></div>
+        <div class="field"><label>Brand Name Provided?</label><select id="npBrandProvided"><option value="">Select...</option><option value="Yes">Provided</option><option value="No">Not Provided</option></select></div>
+        <div class="field"><label>Brand Name</label><input id="npBrand" placeholder="e.g. Medtronic"></div>
+        <div class="field"><label>Campaign Name</label><input id="npCampaign" placeholder="e.g. Test New Campaign"></div>
+        <div class="field"><label>A/B Test Required?</label><select id="npAb"><option value="No">No</option><option value="Yes">Yes</option></select></div>
+        <div class="field"><label>Reminder Email Present?</label><select id="npRem"><option value="No">No</option><option value="Yes">Yes</option></select></div>
+        <div class="field"><label>PRT Number</label><input id="npPrt" placeholder="PP-RA-0092-1"></div>
+        <div class="field"><label>Unique Identifier</label><input id="npUnique" type="number" min="1" step="1" placeholder="e.g. 4"></div>
+      </div>
+      <div class="btns">
+        <button type="button" class="primary" id="generatePickerNames">Generate Journey & Email Names</button>
+      </div>
+      <div id="pickerStatus" class="pickerStatus"></div>
+    </div>
+
+    <div id="pickerOutputs" class="pickerOutputs"></div>
+  </div>
+</div>
+<script>
+(function(){
+  "use strict";
+  function np$(id){return document.getElementById(id)}
+  function npBrandCode(b){return b.trim().slice(0,3).toUpperCase()}
+  function npCampaignName(x){return x.trim().replace(/\s+/g,"_")}
+  function npDigits(x){return x.replace(/\D/g,"")}
+  function npNextId(value){
+    var n=Number.parseInt(String(value).trim(),10);
+    if(!Number.isInteger(n)||n<1)return "";
+    return String(n).padStart(3,"0")+"a";
+  }
+  function npCountryCode(c){return c==="CA"?"CA":"US"}
+
+
+  function updatePickerBrandState(){
+    var provided=np$("npBrandProvided").value;
+    var brand=np$("npBrand");
+    if(!brand)return;
+    if(provided==="No"){
+      brand.value="TBD";
+      brand.disabled=true;
+    }else{
+      brand.disabled=false;
+      if(brand.value==="TBD")brand.value="";
+    }
+  }
+
+  function syncPickerToIntake(){
+    // Brand: picker "Not Provided" is intentionally reflected as Not Provided
+    // in the intake form, while the generated naming value uses TBD.
+    var bp=np$("npBrandProvided").value;
+    if(bp==="No"){
+      setInputValue("brandProvided","no");
+      setInputValue("brandName","");
+    }else if(bp==="Yes"){
+      setInputValue("brandProvided","yes");
+      setInputValue("brandName",np$("npBrand").value.trim());
+    }
+
+    setInputValue("campaignName",np$("npCampaign").value.trim());
+    setInputValue("abTest",np$("npAb").value==="Yes"?"yes":"no");
+    setInputValue("reminder",np$("npRem").value==="Yes"?"yes":"no");
+    setInputValue("assetPrt",np$("npPrt").value.trim());
+
+    // Unique Identifier is used for generated names only; no intake field exists for it.
+    // The main Intake Tool will reflect the values through its normal DOM state.
+  }
+
+  function openNamePicker(){
+    np$("namePickerModal").classList.remove("hidden");
+
+    // Reuse values already entered in the Intake Tool wherever possible.
+    var bp=v("brandProvided");
+    var brand=v("brandName").trim();
+    var camp=v("campaignName").trim();
+    var ab=v("abTest");
+    var rem=v("reminder");
+    var prt=v("assetPrt").trim() || v("azurePrt").trim();
+
+    if(bp==="no"){
+      np$("npBrandProvided").value="No";
+      np$("npBrand").value="TBD";
+    }else if(bp==="yes"){
+      np$("npBrandProvided").value="Yes";
+      if(brand) np$("npBrand").value=brand;
+    }else if(brand){
+      np$("npBrandProvided").value="Yes";
+      np$("npBrand").value=brand;
+    }
+
+    if(camp) np$("npCampaign").value=camp;
+    if(ab) np$("npAb").value=ab==="yes"?"Yes":"No";
+    if(rem) np$("npRem").value=rem==="yes"?"Yes":"No";
+    if(prt) np$("npPrt").value=prt;
+    updatePickerBrandState();
+
+    var prefilled=[];
+    if(bp) prefilled.push("Brand");
+    if(camp) prefilled.push("Campaign");
+    if(ab) prefilled.push("A/B Test");
+    if(rem) prefilled.push("Reminder");
+    if(prt) prefilled.push("PRT");
+
+    np$("pickerStatus").textContent=prefilled.length
+      ? "Auto-filled from the Intake Tool: "+prefilled.join(", ")+". Please enter only any remaining naming details."
+      : "Enter the naming details below.";
+  }
+
+  function closeNamePicker(){
+    np$("namePickerModal").classList.add("hidden");
+  }
+
+  function pickerNames(){
+    syncPickerToIntake();
+
+    var country=np$("npCountry").value;
+    var brand=np$("npBrand").value.trim();
+    var camp=np$("npCampaign").value.trim();
+    var ab=np$("npAb").value;
+    var rem=np$("npRem").value;
+    var prt=np$("npPrt").value.trim();
+    var uniqueInput=np$("npUnique").value.trim();
+
+    if(!np$("npBrandProvided").value){
+      np$("pickerStatus").textContent="Please select whether the Brand Name is Provided or Not Provided.";
+      np$("pickerOutputs").innerHTML="";
+      return;
+    }
+
+    if(np$("npBrandProvided").value==="Yes" && !brand){
+      np$("pickerStatus").textContent="Brand Name is marked as Provided. Please enter the actual Brand Name.";
+      np$("pickerOutputs").innerHTML="";
+      return;
+    }
+
+    if(!camp||!prt||!uniqueInput){
+      np$("pickerStatus").textContent="Please fill Campaign Name, PRT Number and Unique Identifier.";
+      np$("pickerOutputs").innerHTML="";
+      return;
+    }
+
+    var bc=npBrandCode(brand==="TBD" ? "TBD" : brand), id=npNextId(uniqueInput);
+    if(!id){
+      np$("pickerStatus").textContent="Unique Identifier must be a positive whole number, e.g. 4.";
+      np$("pickerOutputs").innerHTML="";
+      return;
+    }
+
+    var year=new Date().getFullYear();
+    var base=npCountryCode(country)+"_"+bc+"_"+year+"_"+id;
+    var cn=npCampaignName(camp);
+    var pd=npDigits(prt);
+    var names=[];
+
+    if(ab==="No"){
+      if(rem==="Yes"){
+        names.push(["Email Initial",base+"_EM01_Initial_"+pd+"_"+cn]);
+        names.push(["Email Reminder",base+"_EM01_Reminder_"+pd+"_"+cn]);
+      }else{
+        names.push(["Email Initial",base+"_EM01_"+pd+"_"+cn]);
+      }
+    }else{
+      if(rem==="Yes"){
+        names.push(["Email Initial A",base+"_EM01A_Initial_"+pd+"_"+cn]);
+        names.push(["Email Initial B",base+"_EM01B_Initial_"+pd+"_"+cn]);
+        names.push(["Email Reminder A",base+"_EM01A_Reminder_"+pd+"_"+cn]);
+        names.push(["Email Reminder B",base+"_EM01B_Reminder_"+pd+"_"+cn]);
+      }else{
+        names.push(["Email Initial A",base+"_EM01A_"+pd+"_"+cn]);
+        names.push(["Email Initial B",base+"_EM01B_"+pd+"_"+cn]);
+      }
+    }
+
+    var journey=base+"_"+cn+"_Journey";
+    var all=[["Journey Name",journey]].concat(names);
+
+    np$("pickerStatus").textContent="Names generated. Click Pick beside the Journey Name or any Email Name.";
+    np$("pickerOutputs").innerHTML=all.map(function(x){
+      return '<div class="pickerNameRow"><b>'+npEscape(x[0])+'</b><span class="pickerNameValue">'+npEscape(x[1])+'</span><button type="button" class="pickNameBtn" data-type="'+npEscape(x[0])+'" data-name="'+encodeURIComponent(x[1])+'">Pick</button></div>';
+    }).join("");
+
+    np$("pickerOutputs").querySelectorAll(".pickNameBtn").forEach(function(btn){
+      btn.addEventListener("click",function(){
+        syncPickerToIntake();
+        var type=btn.getAttribute("data-type");
+        var name=decodeURIComponent(btn.getAttribute("data-name"));
+        applyPickedName(type,name);
+        btn.textContent="✓ Picked";
+        setTimeout(function(){btn.textContent="Pick"},1000);
+      });
+    });
+  }
+
+  function npEscape(s){
+    return String(s||"").replace(/[&<>"']/g,function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c];
+    });
+  }
+
+  function setInputValue(id,value){
+    var e=np$(id);
+    if(e){
+      e.value=value;
+      // Trigger the existing Intake Tool listeners so the Excel/query state
+      // refreshes automatically. The main tool's helper functions are scoped
+      // internally, so we intentionally use DOM events here.
+      e.dispatchEvent(new Event("input",{bubbles:true}));
+      e.dispatchEvent(new Event("change",{bubbles:true}));
+    }
+  }
+
+  function applyPickedName(type,name){
+    if(type==="Journey Name"){
+      setInputValue("campaignJourneyName",name);
+      np$("pickerStatus").textContent="✓ Journey Name added to the Intake Tool.";
+      return;
+    }
+
+    var map={
+      "Email Initial": (np$("abTest").value==="yes" ? "emailInitialARName" : (np$("reminder").value==="yes" ? "emailInitialNameR" : "emailInitialName")),
+      "Email Reminder": "emailReminderNameR",
+      "Email Initial A":"emailInitialARName",
+      "Email Initial B":"emailInitialBRName",
+      "Email Reminder A":"emailReminderARName",
+      "Email Reminder B":"emailReminderBRName"
+    };
+
+    var id=map[type];
+    if(!id)return;
+
+    setInputValue(id,name);
+    np$("pickerStatus").textContent="✓ "+type+" added to the Intake Tool.";
+  }
+
+  np$("openNamePicker").addEventListener("click",openNamePicker);
+  np$("closeNamePicker").addEventListener("click",closeNamePicker);
+  np$("namePickerModal").addEventListener("click",function(e){
+    if(e.target===np$("namePickerModal"))closeNamePicker();
+  });
+  np$("generatePickerNames").addEventListener("click",pickerNames);
+  np$("npBrandProvided").addEventListener("change",function(){
+    updatePickerBrandState();
+    syncPickerToIntake();
+  });
+})();
+</script>
+<script>
+(function(){
+"use strict";
+function $(id){return document.getElementById(id)}
+function v(id){var e=$(id);return e?e.value:""}
+function add(a,s){if(s && a.indexOf(s)===-1)a.push(s)}
+
+function addSameSLPHQuery(arr,slStatus,slValue,phStatus,phValue,label){
+  if(slStatus==="provided" && phStatus==="provided"){
+    var sl=String(slValue||"").trim();
+    var ph=String(phValue||"").trim();
+    if(sl && ph && sl.toLowerCase()===ph.toLowerCase()){
+      add(arr,"The Subject Line and Preheader for the "+label+" are the same. Please confirm whether the same value should be used for both the Subject Line and Preheader.");
+    }
+  }
+}
+
+function addMultipleSLPHQueries(arr,slStatus,phStatus,label){
+  var sl=slStatus==="multiple", ph=phStatus==="multiple";
+  if(sl && ph) add(arr,"Multiple Subject Lines and Preheaders have been provided for "+label+". Please confirm which Subject Line and Preheader should be used.");
+  else if(sl) add(arr,"Multiple Subject Lines have been provided for "+label+". Please confirm which one should be used.");
+  else if(ph) add(arr,"Multiple Preheaders have been provided for "+label+". Please confirm which one should be used.");
+}
+
+function addABMultipleSLPHQueries(arr,slA,phA,slB,phB,labelA,labelB){
+  var aSL=slA==="multiple", aPH=phA==="multiple", bSL=slB==="multiple", bPH=phB==="multiple";
+  if(aSL && bSL && aPH && bPH){
+    add(arr,"Multiple Subject Lines and Preheaders have been provided for both "+labelA+" and "+labelB+". Please confirm which Subject Line and Preheader should be used for each.");
+    return;
+  }
+  if(aSL && bSL && !aPH && !bPH){
+    add(arr,"Multiple Subject Lines have been provided for both "+labelA+" and "+labelB+". Please confirm which Subject Line should be used for each.");
+    return;
+  }
+  if(aPH && bPH && !aSL && !bSL){
+    add(arr,"Multiple Preheaders have been provided for both "+labelA+" and "+labelB+". Please confirm which Preheader should be used for each.");
+    return;
+  }
+  addMultipleSLPHQueries(arr,slA,phA,labelA);
+  addMultipleSLPHQueries(arr,slB,phB,labelB);
+}
+
+function addABInitialReminderMultipleSLPHQueries(arr,isl,iph,asl,aph,bsl,bph,ras,raph,rbs,rbph){
+  var iA=asl==="multiple", iAP=aph==="multiple", iB=bsl==="multiple", iBP=bph==="multiple";
+  var rA=ras==="multiple", rAP=raph==="multiple", rB=rbs==="multiple", rBP=rbph==="multiple";
+  var allSL=iA&&iB&&rA&&rB, allPH=iAP&&iBP&&rAP&&rBP, allBoth=allSL&&allPH;
+  if(allBoth){
+    add(arr,"Multiple Subject Lines and Preheaders have been provided for the initial and Reminder emails across both Variant A and Variant B. Please confirm which Subject Line and Preheader should be used for each email and variant.");
+    return;
+  }
+  if(allSL){
+    add(arr,"Multiple Subject Lines have been provided for the initial and Reminder emails across both Variant A and Variant B. Please confirm which Subject Line should be used for each email and variant.");
+    if(allPH) return;
+  }
+  if(allPH){
+    add(arr,"Multiple Preheaders have been provided for the initial and Reminder emails across both Variant A and Variant B. Please confirm which Preheader should be used for each email and variant.");
+    return;
+  }
+
+  function addPair(sl1,ph1,sl2,ph2,label){
+    var s1=sl1==="multiple", p1=ph1==="multiple", s2=sl2==="multiple", p2=ph2==="multiple";
+    if(s1&&s2&&p1&&p2) add(arr,"Multiple Subject Lines and Preheaders have been provided for the initial and Reminder emails for "+label+". Please confirm which Subject Line and Preheader should be used for each email.");
+    else if(s1&&s2&&!p1&&!p2) add(arr,"Multiple Subject Lines have been provided for the initial and Reminder emails for "+label+". Please confirm which Subject Line should be used for each email.");
+    else if(p1&&p2&&!s1&&!s2) add(arr,"Multiple Preheaders have been provided for the initial and Reminder emails for "+label+". Please confirm which Preheader should be used for each email.");
+    else{
+      addMultipleSLPHQueries(arr,sl1,ph1,"the initial "+label);
+      addMultipleSLPHQueries(arr,sl2,ph2,"the Reminder "+label);
+    }
+  }
+
+  addPair(asl,aph,ras,raph,"Variant A");
+  addPair(bsl,bph,rbs,rbph,"Variant B");
+}
+
+function addABInitialReminderMissingSLPHQueries(arr,isl,iph,asl,aph,bsl,bph,ras,raph,rbs,rbph){
+  var iA=asl==="missing", iP=aph==="missing", iB=bsl==="missing", iBP=bph==="missing";
+  var rA=ras==="missing", rP=raph==="missing", rB=rbs==="missing", rBP=rbph==="missing";
+  var allSL=iA&&iB&&rA&&rB, allPH=iP&&iBP&&rP&&rBP;
+  var allBoth=allSL&&allPH;
+
+  if(allBoth){
+    add(arr,"Subject Lines and Preheaders have not been provided for both the initial and Reminder emails across Variant A and Variant B. Please provide the Subject Line and Preheader for each email and variant.");
+    return;
+  }
+  if(allSL){
+    add(arr,"Subject Lines have not been provided for both the initial and Reminder emails across Variant A and Variant B. Please provide the Subject Line for each email and variant.");
+  }
+  if(allPH){
+    add(arr,"Preheaders have not been provided for both the initial and Reminder emails across Variant A and Variant B. Please confirm whether Preheaders should be used and provide them for each email and variant if applicable.");
+  }
+  function addPair(sl1,ph1,sl2,ph2,label){
+    if(sl1==="missing" && sl2==="missing" && ph1==="missing" && ph2==="missing") {
+      add(arr,"Subject Lines and Preheaders have not been provided for the initial and Reminder emails for "+label+". Please provide the Subject Line and Preheader for each email.");
+      return;
+    }
+    if(sl1==="missing" && sl2==="missing") add(arr,"Subject Lines have not been provided for the initial and Reminder emails for "+label+". Please provide the Subject Line for each email.");
+    else {
+      if(sl1==="missing") add(arr,"Subject Line for the initial "+label+" has not been provided. Please provide the Subject Line.");
+      if(sl2==="missing") add(arr,"Subject Line for the Reminder "+label+" has not been provided. Please provide the Subject Line.");
+    }
+    if(ph1==="missing" && ph2==="missing") add(arr,"Preheaders have not been provided for the initial and Reminder emails for "+label+". Please confirm whether Preheaders should be used and provide them for each email if applicable.");
+    else {
+      if(ph1==="missing") add(arr,"Preheader for the initial "+label+" has not been provided. Please confirm whether a Preheader should be used.");
+      if(ph2==="missing") add(arr,"Preheader for the Reminder "+label+" has not been provided. Please confirm whether a Preheader should be used.");
+    }
+  }
+
+  addPair(allSL ? "" : asl, allPH ? "" : aph, allSL ? "" : ras, allPH ? "" : raph, "Variant A");
+  addPair(allSL ? "" : bsl, allPH ? "" : bph, allSL ? "" : rbs, allPH ? "" : rbph, "Variant B");
+}
+
+function addSameSLPHPairQuery(arr,items,labelPrefix){
+  var matches=items.filter(function(x){return x[0] && x[1] && String(x[0]).toLowerCase()===String(x[1]).toLowerCase();});
+  if(matches.length===1){
+    addSameSLPHQuery(arr,matches[0][2],matches[0][3],matches[0][4],matches[0][5],matches[0][6]);
+  }else if(matches.length>1){
+    add(arr,"The Subject Line and Preheader for the "+labelPrefix+" are the same. Please confirm whether the same values should be used for both the Subject Line and Preheader for each.");
+  }
+}
+
+function addCombinedMissingSLPH(arr,slStatus,phStatus,label){
+  var sl=slStatus==="missing", ph=phStatus==="missing";
+  if(sl && ph) add(arr,"Subject Line and Preheader have not been provided for "+label+". Please provide the Subject Line and confirm/provide the Preheader.");
+  else if(sl) add(arr,"Subject Line has not been provided for "+label+". Please provide the Subject Line.");
+  else if(ph) add(arr,"Preheader has not been provided for "+label+". Please confirm whether a Preheader should be used and provide it if applicable.");
+}
+
+function addTwoEmailMissingOrMultipleSLPH(arr,slA,phA,slB,phB,labelA,labelB){
+  var aSM=slA==="missing", aPM=phA==="missing", bSM=slB==="missing", bPM=phB==="missing";
+  var aSML=slA==="multiple", aPML=phA==="multiple", bSML=slB==="multiple", bPML=phB==="multiple";
+  if(aSM && bSM && aPM && bPM){
+    add(arr,"Subject Lines and Preheaders have not been provided for both "+labelA+" and "+labelB+". Please provide the Subject Line and Preheader for each.");
+    return;
+  }
+  if(aSML && bSML && aPML && bPML){
+    add(arr,"Multiple Subject Lines and Preheaders have been provided for both "+labelA+" and "+labelB+". Please confirm which Subject Line and Preheader should be used for each.");
+    return;
+  }
+  if(aSM && bSM && !aPM && !bPM){
+    add(arr,"Subject Lines have not been provided for both "+labelA+" and "+labelB+". Please provide the Subject Line for each.");
+  }else if(aPM && bPM && !aSM && !bSM){
+    add(arr,"Preheaders have not been provided for both "+labelA+" and "+labelB+". Please confirm whether Preheaders should be used and provide them for each if applicable.");
+  }else{
+    addCombinedMissingSLPH(arr,slA,phA,labelA);
+    addCombinedMissingSLPH(arr,slB,phB,labelB);
+  }
+  if(aSML && bSML && !aPML && !bPML){
+    add(arr,"Multiple Subject Lines have been provided for both "+labelA+" and "+labelB+". Please confirm which Subject Line should be used for each.");
+  }else if(aPML && bPML && !aSML && !bSML){
+    add(arr,"Multiple Preheaders have been provided for both "+labelA+" and "+labelB+". Please confirm which Preheader should be used for each.");
+  }else{
+    addMultipleSLPHQueries(arr,slA,phA,labelA);
+    addMultipleSLPHQueries(arr,slB,phB,labelB);
+  }
+}
+
+function addCombinedLaunchDateTimeQueries(arr,initialDateStatus,remDateStatus,initialTimeStatus,remTimeStatus,reminderEnabled){
+  var id=initialDateStatus, rd=remDateStatus, it=initialTimeStatus, rt=remTimeStatus;
+  if(reminderEnabled && id==="missing" && rd==="missing" && it==="missing" && rt==="missing"){
+    add(arr,"Launch date and time have not been provided for both the initial and Reminder emails. Please confirm the launch dates and times.");
+    return;
+  }
+  if(reminderEnabled && id==="missing" && rd==="missing") add(arr,"Launch dates have not been provided for both the initial and Reminder emails. Please confirm the launch dates.");
+  else{
+    if(id==="missing") add(arr,"Launch date for the initial email has not been provided. Please confirm the initial launch date.");
+    if(reminderEnabled && rd==="missing") add(arr,"Launch date for the Reminder email has not been provided. Please confirm the Reminder launch date.");
+  }
+  if(reminderEnabled && it==="missing" && rt==="missing") add(arr,"Launch times have not been provided for both the initial and Reminder emails. Please confirm the launch times.");
+  else{
+    if(it==="missing") add(arr,"Launch time for the initial email has not been provided. Please confirm the initial launch time.");
+    if(reminderEnabled && rt==="missing") add(arr,"Launch time for the Reminder email has not been provided. Please confirm the Reminder launch time.");
+  }
+}
+
+function addCombined12AMQueries(arr,initialTimeStatus,remTimeStatus,reminderEnabled){
+  if(reminderEnabled && initialTimeStatus==="12am" && remTimeStatus==="12am"){
+    add(arr,"The launch time for both the initial and Reminder emails is mentioned as 12:00 AM in Azure. Please confirm whether both emails should be launched at 12:00 AM.");
+    return;
+  }
+  if(initialTimeStatus==="12am") add(arr,"The initial email launch time is mentioned as 12:00 AM in Azure. Please confirm whether the initial email should be launched at 12:00 AM.");
+  if(reminderEnabled && remTimeStatus==="12am") add(arr,"The Reminder email launch time is mentioned as 12:00 AM in Azure. Please confirm whether the Reminder should be launched at 12:00 AM.");
+}
+
+function syncReminderChoices(){
+  var iSL=v("iRSL"), iPH=v("iRPH");
+  var rSL=$("rSL"), rPH=$("rPH");
+  if(rSL && rPH){
+    var oldSL=rSL.value, oldPH=rPH.value;
+    if(iSL==="provided") rSL.innerHTML='<option value="">Select...</option><option value="same">Same as Initial</option><option value="provided">1 Provided - Different</option><option value="multiple">Multiple Provided</option><option value="missing">Not Provided</option>';
+    else rSL.innerHTML='<option value="">Select...</option><option value="provided">1 Provided - Different</option><option value="multiple">Multiple Provided</option><option value="missing">Not Provided</option>';
+    if(iPH==="provided") rPH.innerHTML='<option value="">Select...</option><option value="same">Same as Initial</option><option value="provided">1 Provided - Different</option><option value="multiple">Multiple Provided</option><option value="missing">Not Provided</option><option value="none">Explicitly Don\'t Use</option>';
+    else rPH.innerHTML='<option value="">Select...</option><option value="provided">1 Provided - Different</option><option value="multiple">Multiple Provided</option><option value="missing">Not Provided</option><option value="none">Explicitly Don\'t Use</option>';
+    if(Array.from(rSL.options).some(function(o){return o.value===oldSL;})) rSL.value=oldSL;
+    if(Array.from(rPH.options).some(function(o){return o.value===oldPH;})) rPH.value=oldPH;
+  }
+
+  function setABReminder(id,initialId,initialPH){
+    var e=$(id); if(!e)return;
+    var old=e.value, initial=v(initialId);
+    var html='<option value="">Select...</option>';
+    if(initial==="provided") html+='<option value="same">Same as Initial</option>';
+    html+='<option value="provided">1 Provided - Different</option><option value="multiple">Multiple Provided</option><option value="missing">Not Provided</option>';
+    if(initialPH) html+='<option value="none">Explicitly Don\'t Use</option>';
+    e.innerHTML=html;
+    if(Array.from(e.options).some(function(o){return o.value===old;})) e.value=old;
+  }
+  setABReminder("arSL","bSL",false);
+  setABReminder("brSL","aSL",false);
+  setABReminder("arPH","bPH",true);
+  setABReminder("brPH","aPH",true);
+}
+
+function time12(idPrefix){
+  var h=v(idPrefix+"Hour"), m=v(idPrefix+"Minute"), ap=v(idPrefix+"AmPm");
+  return h && m && ap ? h+":"+m+" "+ap+" EST" : "";
+}
+
+function updateSLPHValueFields(){
+  var pairs=[
+    ["initialSL","initialSLValueField"],["initialPH","initialPHValueField"],
+    ["iRSL","iRSLValueField"],["iRPH","iRPHValueField"],
+    ["rSL","rSLValueField"],["rPH","rPHValueField"],
+    ["aSL","aSLValueField"],["aPH","aPHValueField"],
+    ["bSL","bSLValueField"],["bPH","bPHValueField"],
+    ["arSL","arSLValueField"],["arPH","arPHValueField"],["brSL","brSLValueField"],["brPH","brPHValueField"]
+  ];
+  pairs.forEach(function(p){
+    var field=$(p[1]);
+    if(field) field.classList.toggle("hidden",v(p[0])!=="provided");
+  });
+}
+
+function updateEmailNameFields(){
+  var ab=v("abTest"), rem=v("reminder");
+  var section=$("emailNamesSection");
+  if(section) section.classList.toggle("hidden",!(ab && rem));
+  var ids=["emailNamesNoReminderNoAB","emailNamesReminderNoAB","emailNamesABNoReminder","emailNamesABReminder"];
+  ids.forEach(function(id){var e=$(id);if(e)e.classList.add("hidden");});
+
+  if(ab==="no" && rem==="no") $("emailNamesNoReminderNoAB").classList.remove("hidden");
+  if(ab==="no" && rem==="yes") $("emailNamesReminderNoAB").classList.remove("hidden");
+  if(ab==="yes" && rem==="no") $("emailNamesABNoReminder").classList.remove("hidden");
+  if(ab==="yes" && rem==="yes") $("emailNamesABReminder").classList.remove("hidden");
+}
+
+function getEmailNameRows(){
+  var ab=v("abTest"), rem=v("reminder"), rows=[];
+  if(ab==="no" && rem==="no"){
+    rows.push(["Initial Email Name",v("emailInitialName").trim()]);
+  }else if(ab==="no" && rem==="yes"){
+    rows.push(["Initial Email Name",v("emailInitialNameR").trim()]);
+    rows.push(["Reminder Email Name",v("emailReminderNameR").trim()]);
+  }else if(ab==="yes" && rem==="no"){
+    rows.push(["Initial Email Name – Variant A",v("emailInitialAName").trim()]);
+    rows.push(["Initial Email Name – Variant B",v("emailInitialBName").trim()]);
+  }else if(ab==="yes" && rem==="yes"){
+    rows.push(["Initial Email Name – Variant A",v("emailInitialARName").trim()]);
+    rows.push(["Initial Email Name – Variant B",v("emailInitialBRName").trim()]);
+    rows.push(["Reminder Email Name – Variant A",v("emailReminderARName").trim()]);
+    rows.push(["Reminder Email Name – Variant B",v("emailReminderBRName").trim()]);
+  }
+  return rows;
+}
+
+function validateEmailNames(sf){
+  getEmailNameRows().forEach(function(x){
+    if(!x[1]) add(sf,x[0]+" has not been provided. Please provide the "+x[0]+".");
+  });
+}
+
+function visibility(){
+  var type=v("requestType"), ab=v("abTest"), rem=v("reminder");
+  $("sfmcSection").classList.toggle("hidden",type!=="both");
+  $("htmlSection").classList.toggle("hidden",type!=="both" && type!=="html");
+  $("outputSection").classList.toggle("hidden",type!=="both" && type!=="html");
+  $("sfmcOutWrap").classList.toggle("hidden",type!=="both");
+  $("htmlOutWrap").classList.toggle("hidden",type!=="both" && type!=="html");
+
+  $("taAzureField").classList.toggle("hidden",v("ta")!=="no");
+  $("contactField").classList.toggle("hidden",v("ta")!=="yes");
+  $("brandNameField").classList.toggle("hidden",v("brandProvided")!=="yes");
+  $("senderProfileNameField").classList.toggle("hidden",v("senderProfile")!=="correct");
+  $("unsubscribeBlock").classList.toggle("hidden",v("requestType")!=="both");
+
+  var unsub=v("unsubscribe");
+  var unsubType=v("unsubscribeUrlType");
+  var updateType=v("updateUrlType");
+
+  $("unsubscribeUrlTypeField").classList.toggle("hidden",unsub!=="unsubscribe");
+  $("unsubscribeUrlField").classList.toggle("hidden",!(unsub==="unsubscribe" && unsubType==="other"));
+  $("unsubscribeUrlTypeLabel").textContent="Unsubscribe URL";
+
+  $("updateUrlTypeField").classList.toggle("hidden",unsub!=="update");
+  $("updateUrlField").classList.toggle("hidden",!(unsub==="update" && updateType==="other"));
+
+  // Not Present retains the confirmation flow from the previous requirement.
+  // Update Preferences always requires a confirmation query.
+  $("unsubscribeConfirmationField").classList.toggle("hidden",v("requestType")!=="both" || unsub!=="no");
+  updateSLPHValueFields();
+  updateEmailNameFields();
+
+  $("resendNonOpeners").disabled = rem!=="yes";
+  $("resendNonOpenersField").classList.toggle("hidden",rem!=="yes");
+  $("singleNoReminder").classList.toggle("hidden",!(ab==="no" && rem==="no"));
+  $("nonAbReminder").classList.toggle("hidden",!(ab==="no" && rem==="yes"));
+  $("abFields").classList.toggle("hidden",ab!=="yes");
+  $("abReminderSLPH").classList.toggle("hidden",!(ab==="yes" && rem==="yes"));
+
+  $("remDateField").classList.toggle("hidden",rem!=="yes");
+  $("remTimeField").classList.toggle("hidden",rem!=="yes");
+  $("initialDateValueField").classList.toggle("hidden",v("initialDate")!=="provided");
+  $("initialTimeValueField").classList.toggle("hidden",v("initialTime")!=="provided");
+  $("remDateValueField").classList.toggle("hidden",v("remDate")!=="provided");
+  $("remTimeValueField").classList.toggle("hidden",v("remTime")!=="provided");
+
+  $("linkDetailField").classList.toggle("hidden",v("links")!=="missing" && v("links")!=="error");
+  $("mobileNote").classList.toggle("hidden",v("mobile")!=="yes");
+}
+
+function render(id,arr){
+  var e=$(id);
+  e.textContent=arr.length?arr.map(function(x,i){return (i+1)+". "+x}).join("\n\n"):"No queries generated from the selected inputs.";
+  e.classList.toggle("empty",!arr.length);
+}
+
+
+function getUtmRows(){
+  return Array.from(document.querySelectorAll(".utmRow"));
+}
+function buildUtmLink(row){
+  var link=row.querySelector(".utmLink").value.trim();
+  var campaign=row.querySelector(".utmCampaign").value.trim();
+  var content=row.querySelector(".utmContent").value.trim();
+  var source=row.querySelector(".utmSource").value.trim();
+  var medium=row.querySelector(".utmMedium").value.trim();
+  if(!link)return "";
+  var params=[];
+  [["utm_campaign",campaign],["utm_content",content],["utm_source",source],["utm_medium",medium]].forEach(function(x){
+    if(x[1])params.push(encodeURIComponent(x[0])+"="+encodeURIComponent(x[1]));
+  });
+  if(!params.length)return link;
+  return link+(link.indexOf("?")>=0 ? (/[?&]$/.test(link)?"":"&") : "?")+params.join("&");
+}
+function refreshUtmRows(){
+  getUtmRows().forEach(function(row){
+    var out=row.querySelector(".utmFinal");
+    out.textContent=buildUtmLink(row)||"Final link will appear here";
+  });
+}
+function addUtmRow(){
+  var wrap=$("utmRows");
+  if(!wrap)return;
+  var row=document.createElement("div");
+  row.className="utmRow";
+  row.innerHTML='<div class="utmRowGrid">'+
+    '<div class="field utmFull"><label>Link</label><input class="utmLink" placeholder="https://example.com/page"></div>'+
+    '<div class="field"><label>utm_campaign</label><input class="utmCampaign" placeholder="Campaign"></div>'+
+    '<div class="field"><label>utm_content</label><input class="utmContent" placeholder="CTA / Email"></div>'+
+    '<div class="field"><label>utm_source</label><input class="utmSource" placeholder="email"></div>'+
+    '<div class="field"><label>utm_medium</label><input class="utmMedium" placeholder="email"></div>'+
+    '</div><div class="utmFinal">Final link will appear here</div>'+
+    '<div class="utmRowActions"><button type="button" class="utmCopyBtn">Copy URL</button><button type="button" class="utmRemove">Remove</button></div>';
+  wrap.appendChild(row);
+  row.querySelectorAll("input").forEach(function(inp){
+    inp.addEventListener("input",refreshUtmRows);
+  });
+  row.querySelector(".utmCopyBtn").addEventListener("click",function(){
+    var url=buildUtmLink(row);
+    if(!url){alert("Please enter a Link first.");return;}
+    copyText(url,this);
+  });
+  row.querySelector(".utmRemove").addEventListener("click",function(){
+    row.remove();
+    refreshUtmRows();
+  });
+}
+function resetUtmBuilder(){
+  var wrap=$("utmRows");
+  if(!wrap)return;
+  wrap.innerHTML="";
+  addUtmRow();
+}
+function syncUtmBuilder(){
+  var provided=v("utm")==="yes";
+  var control=$("utmBuilderControl");
+  var builder=$("utmBuilder");
+  if(control)control.classList.toggle("hidden",!provided);
+  if(!provided && builder)builder.classList.add("hidden");
+  if(provided && !$("utmRows").children.length)addUtmRow();
+}
+
+function generate(){
+  var type=v("requestType"), sf=[], ht=[];
+  ["sfmcAiOutput","htmlAiOutput"].forEach(function(id){if($(id)){ $(id).textContent=""; $(id).classList.add("hidden"); }});
+  ["sfmcAiBtns","htmlAiBtns"].forEach(function(id){if($(id))$(id).classList.add("hidden")});
+  if(!type){render("sfmcOutput",[]);render("htmlOutput",[]);return}
+
+  if(type==="both"){
+    if(v("brandProvided")==="no")add(sf,"The Brand Name has not been provided. Please provide the Brand Name for this campaign.");
+    if(v("brandProvided")==="yes" && !v("brandName").trim())add(sf,"Brand Name has been marked as provided, but the actual Brand Name has not been entered. Please provide the Brand Name.");
+    if(v("ta")==="no"){
+      if(v("taAzure")==="yes")add(sf,"TA is not provided in the current campaign assets. As mentioned in Azure, TA will be provided separately. Please confirm when we can expect the TA.");
+      else if(v("taAzure")==="no")add(sf,"TA is not provided in the current campaign assets. Please confirm when we can expect the TA.");
+    }
+    if(v("ta")==="yes" && v("contactId")==="no")add(sf,"No Contact ID has been provided for this TA. Please confirm whether a Contact ID should be provided or whether we should use the email address as the Subscriber Key.");
+
+    var ab=v("abTest"), rem=v("reminder");
+
+    if(rem==="yes" && v("resendNonOpeners")==="no") add(sf,"Resend Email to Non-Openers has not been provided. Please confirm whether a resend to non-openers is required and, if yes, provide the resend details.");
+
+    validateEmailNames(sf);
+
+    // If Subject Line / Preheader is marked Provided, require the actual value.
+    var slphChecks=[
+      ["initialSL","initialSLValue","Initial Subject Line"],
+      ["initialPH","initialPHValue","Initial Preheader"],
+      ["iRSL","iRSLValue","Initial Subject Line"],
+      ["iRPH","iRPHValue","Initial Preheader"],
+      ["rSL","rSLValue","Reminder Subject Line"],
+      ["rPH","rPHValue","Reminder Preheader"],
+      ["aSL","aSLValue","Variant A Subject Line (SLA)"],
+      ["aPH","aPHValue","Variant A Preheader (PHA)"],
+      ["bSL","bSLValue","Variant B Subject Line (SLB)"],
+      ["bPH","bPHValue","Variant B Preheader (PHB)"],
+      ["arSL","arSLValue","Reminder A Subject Line"],
+      ["arPH","arPHValue","Reminder A Preheader"],
+      ["brSL","brSLValue","Reminder B Subject Line"],
+      ["brPH","brPHValue","Reminder B Preheader"]
+    ];
+    slphChecks.forEach(function(x){
+      if(v(x[0])==="provided" && !v(x[1]).trim())
+        add(sf,x[2]+" is marked as Provided, but the actual value has not been entered. Please provide it.");
+    });
+
+    if(ab==="no" && rem==="no"){
+      var isl=v("initialSL"),iph=v("initialPH");
+      addCombinedMissingSLPH(sf,isl,iph,"the initial email");
+      addMultipleSLPHQueries(sf,isl,iph,"the initial email");
+      addSameSLPHQuery(sf,isl,v("initialSLValue"),iph,v("initialPHValue"),"initial email");
+    }
+
+    if(ab==="no" && rem==="yes"){
+      var is=v("iRSL"),ip=v("iRPH"),rs=v("rSL"),rp=v("rPH");
+      addTwoEmailMissingOrMultipleSLPH(sf,is,ip,rs,rp,"the initial email","the Reminder email");
+      if(is==="provided" && rs==="missing") add(sf,"Subject Line has been provided for the initial email, but it has not been provided for the Reminder email. Please provide the Reminder Subject Line.");
+      if(ip==="provided" && rp==="missing") add(sf,"Preheader has been provided for the initial email, but it has not been provided for the Reminder email. Please confirm whether the same Preheader used for the initial email should be used for the Reminder or provide a separate Preheader.");
+
+      var initialSame=(is==="provided" && ip==="provided" && v("iRSLValue").trim() && v("iRPHValue").trim() && v("iRSLValue").trim().toLowerCase()===v("iRPHValue").trim().toLowerCase());
+      var reminderSame=(rs==="provided" && rp==="provided" && v("rSLValue").trim() && v("rPHValue").trim() && v("rSLValue").trim().toLowerCase()===v("rPHValue").trim().toLowerCase());
+      if(initialSame && reminderSame) add(sf,"The Subject Line and Preheader for the initial and Reminder emails are the same. Please confirm whether the same value should be used for both the Subject Line and Preheader for each email.");
+      else{
+        if(initialSame) addSameSLPHQuery(sf,is,v("iRSLValue"),ip,v("iRPHValue"),"initial email");
+        if(reminderSame) addSameSLPHQuery(sf,rs,v("rSLValue"),rp,v("rPHValue"),"Reminder email");
+      }
+    }
+
+    if(ab==="yes"){
+      var asl=v("aSL"),aph=v("aPH"),bsl=v("bSL"),bph=v("bPH");
+      if(rem==="yes"){
+        var ras=v("arSL"), raps=v("arPH"), rbs=v("brSL"), rbps=v("brPH");
+        addABInitialReminderMissingSLPHQueries(sf,v("iRSL"),v("iRPH"),asl,aph,bsl,bph,ras,raps,rbs,rbps);
+        addABInitialReminderMultipleSLPHQueries(sf,v("iRSL"),v("iRPH"),asl,aph,bsl,bph,ras,raps,rbs,rbps);
+      }else{
+        if(asl==="missing" && bsl==="missing" && aph==="missing" && bph==="missing"){
+          add(sf,"Subject Lines and Preheaders have not been provided for both Variant A and Variant B. Please provide the Subject Line and Preheader for each variant.");
+        }else{
+          if(asl==="missing" && bsl==="missing") add(sf,"Subject Lines have not been provided for both Variant A and Variant B. Please provide the Subject Line for each variant.");
+          else{
+            if(asl==="missing")add(sf,"Subject Line (SLA) for Variant A has not been provided. Please provide the Subject Line (SLA).");
+            if(bsl==="missing")add(sf,"Subject Line (SLB) for Variant B has not been provided. Please provide the Subject Line (SLB).");
+          }
+          if(aph==="missing" && bph==="missing") add(sf,"Preheaders have not been provided for both Variant A and Variant B. Please confirm whether Preheaders should be used and provide them for each variant if applicable.");
+          else{
+            if(aph==="missing")add(sf,"Preheader (PHA) for Variant A has not been provided. Please confirm whether a Preheader (PHA) should be used.");
+            if(bph==="missing")add(sf,"Preheader (PHB) for Variant B has not been provided. Please confirm whether a Preheader (PHB) should be used.");
+          }
+        }
+        addABMultipleSLPHQueries(sf,asl,aph,bsl,bph,"Variant A","Variant B");
+      }
+
+      var aSameSLPH = (asl==="provided" && aph==="provided" &&
+        v("aSLValue").trim() && v("aPHValue").trim() &&
+        v("aSLValue").trim().toLowerCase() === v("aPHValue").trim().toLowerCase());
+      var bSameSLPH = (bsl==="provided" && bph==="provided" &&
+        v("bSLValue").trim() && v("bPHValue").trim() &&
+        v("bSLValue").trim().toLowerCase() === v("bPHValue").trim().toLowerCase());
+
+      if(aSameSLPH && bSameSLPH){
+        add(sf,"The Subject Line and Preheader for the A/B Variant A and A/B Variant B initial emails are the same. Please confirm whether the same values should be used for both the Subject Line and Preheader for both variants.");
+      }else{
+        if(aSameSLPH) add(sf,"The Subject Line and Preheader for the A/B Variant A initial email are the same. Please confirm whether the same value should be used for both the Subject Line and Preheader.");
+        if(bSameSLPH) add(sf,"The Subject Line and Preheader for the A/B Variant B initial email are the same. Please confirm whether the same value should be used for both the Subject Line and Preheader.");
+      }
+
+      if(rem==="yes"){
+        var ras=v("arSL"), raps=v("arPH"), rbs=v("brSL"), rbps=v("brPH");
+
+        var remASame=(ras==="provided" && raps==="provided" && v("arSLValue").trim() && v("arPHValue").trim() && v("arSLValue").trim().toLowerCase()===v("arPHValue").trim().toLowerCase());
+        var remBSame=(rbs==="provided" && rbps==="provided" && v("brSLValue").trim() && v("brPHValue").trim() && v("brSLValue").trim().toLowerCase()===v("brPHValue").trim().toLowerCase());
+        if(remASame && remBSame) add(sf,"The Subject Line and Preheader for Reminder A and Reminder B are the same. Please confirm whether the same values should be used for both the Subject Line and Preheader for each Reminder email.");
+        else{
+          if(remASame) addSameSLPHQuery(sf,ras,v("arSLValue"),raps,v("arPHValue"),"Reminder A email");
+          if(remBSame) addSameSLPHQuery(sf,rbs,v("brSLValue"),rbps,v("brPHValue"),"Reminder B email");
+        }
+      }
+    }
+
+    var id=v("initialDate"),it=v("initialTime");
+    var initialDateValue=v("initialDateValue"), initialTimeValue=time12("initialTime");
+    var reminderDateValue=v("remDateValue"), reminderTimeValue=time12("remTime");
+
+    addCombinedLaunchDateTimeQueries(sf,id,rem==="yes"?v("remDate"):"",it,rem==="yes"?v("remTime"):"",rem==="yes");
+    addCombined12AMQueries(sf,it,rem==="yes"?v("remTime"):"",rem==="yes");
+
+    var initialDateMissingActual=(id==="provided" && !initialDateValue);
+    var initialTimeMissingActual=(it==="provided" && !initialTimeValue);
+    var reminderDateMissingActual=(rem==="yes" && v("remDate")==="provided" && !reminderDateValue);
+    var reminderTimeMissingActual=(rem==="yes" && v("remTime")==="provided" && !reminderTimeValue);
+
+    if(initialDateMissingActual && initialTimeMissingActual && reminderDateMissingActual && reminderTimeMissingActual)
+      add(sf,"Initial and Reminder Launch Dates and Launch Times are marked as provided, but the actual dates and times have not been entered. Please provide the dates and times for both emails.");
+    else{
+      if(initialDateMissingActual && initialTimeMissingActual)
+        add(sf,"Initial Launch Date and Initial Launch Time are marked as provided, but the actual date and time have not been entered. Please provide both the Initial Launch Date and Initial Launch Time.");
+      else{
+        if(initialDateMissingActual) add(sf,"Initial Launch Date is marked as Provided, but the actual date has not been entered. Please provide the Initial Launch Date.");
+        if(initialTimeMissingActual) add(sf,"Initial Launch Time is marked as Provided / Correct, but the actual time has not been entered. Please provide the Initial Launch Time.");
+      }
+      if(reminderDateMissingActual && reminderTimeMissingActual)
+        add(sf,"Reminder Launch Date and Reminder Launch Time are marked as provided, but the actual date and time have not been entered. Please provide both the Reminder Launch Date and Reminder Launch Time.");
+      else{
+        if(reminderDateMissingActual) add(sf,"Reminder Launch Date is marked as Provided, but the actual date has not been entered. Please provide the Reminder Launch Date.");
+        if(reminderTimeMissingActual) add(sf,"Reminder Launch Time is marked as Provided / Correct, but the actual time has not been entered. Please provide the Reminder Launch Time.");
+      }
+    }
+
+    if(v("assetPrt") && v("azurePrt") && v("assetPrt").trim()!==v("azurePrt").trim())
+      add(sf,"The PRT number mentioned in the campaign asset is "+v("assetPrt")+", whereas Azure mentions "+v("azurePrt")+". Please confirm which PRT number should be used for this campaign.");
+
+    if(v("senderProfile")==="missing")
+      add(sf,"The Sender Profile has not been provided in Azure. Please provide/confirm the Sender Profile to be used for this campaign.");
+    if(v("senderProfile")==="incorrect")
+      add(sf,"The Sender Profile provided in Azure appears to be incorrect. Please provide/confirm the correct Sender Profile to be used for this campaign.");
+    if(v("senderProfile")==="correct" && !v("senderProfileName").trim())
+      add(sf,"The Sender Profile is marked as Provided / Correct, but the Sender Profile Name has not been entered. Please provide the Sender Profile Name.");
+     // Test List Audience is captured directly from the Azure/test-audience details field.
+    // No separate Provided/Not Provided dropdown is required.
+  }
+
+  if(v("figmaUrl").trim()==="" && v("images")==="yes")
+    add(ht,"Campaign images are marked as provided/extracted, but the Figma URL has not been provided. Please provide the Figma URL if applicable.");
+  if(v("requestType")==="both" && v("unsubscribe")==="update")
+    add(ht,"The footer currently contains an \"Update Preference\" option instead of \"Unsubscribe\". Please confirm whether this should be changed to \"Unsubscribe\" or retained as provided.");
+
+  if(v("requestType")==="both" && v("unsubscribe")==="no" && v("unsubscribeConfirmation")==="yes")
+    add(sf,"Unsubscribe / Update Preference is not present in the campaign asset. Please confirm whether an unsubscribe or update preference link needs to be added.");
+  if(v("images")==="pdfOnly")add(ht,"The campaign images cannot be extracted from the provided PDF. Please provide the Figma file or individual campaign images so that the HTML can be developed accurately.");
+  if(v("images")==="no")add(ht,"Campaign images have not been provided. Please provide the required images/Figma file for the campaign.");
+  if(v("unsubscribe")==="no"){
+    if(type==="both")add(ht,"An Unsubscribe option has not been provided in the campaign asset. As a best practice, we have added an Unsubscribe link to the footer. Please confirm if this is acceptable.");
+    else add(ht,"An Unsubscribe option has not been provided in the campaign asset. Please confirm whether an Unsubscribe link should be added to the footer.");
+  }
+  if(v("links")==="missing")add(ht,"A campaign link has not been provided"+(v("linkDetail")?" for "+v("linkDetail"):"")+". Please provide the URL to be used.");
+  if(v("links")==="error")add(ht,"The provided link"+(v("linkDetail")?" for "+v("linkDetail"):"")+" redirects to an error page. Please confirm whether this URL should be used or provide the correct URL.");
+  if(v("utm")==="no")add(ht,"UTM parameters have not been provided. Please confirm whether we need to add UTM parameters to the links. If yes, please provide the required UTM details.");
+  if(v("address")==="no")add(ht,"The Bayer address has not been provided in the campaign asset. Please confirm whether the Bayer address should be added to the footer.");
+  if(v("mobile")==="yes")add(ht,"A mobile number is provided in the campaign asset. We will make the number clickable using a tel: link so that it can be directly used on mobile devices. Please confirm if this is acceptable.");
+
+  render("sfmcOutput",sf);render("htmlOutput",ht);
+}
+
+
+function downloadBlob(blob,filename){
+  try{
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement("a");
+    a.href=url;
+    a.download=filename;
+    a.style.display="none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){
+      if(a.parentNode)a.parentNode.removeChild(a);
+      URL.revokeObjectURL(url);
+    },1200);
+  }catch(err){
+    alert("Unable to download the file. Please try again. Error: "+err.message);
+  }
+}
+
+function safeFilePart(s){
+  return String(s||"Campaign_Intake").trim().replace(/[^a-z0-9_-]+/gi,"_").replace(/^_+|_+$/g,"") || "Campaign_Intake";
+}
+
+function selectedText(id){
+  var e=$(id);
+  if(!e || !e.value) return "";
+  var o=e.options && e.options[e.selectedIndex];
+  return o ? o.text : e.value;
+}
+
+function statusFromProvided(id){
+  var val=v(id);
+  if(val==="yes" || val==="provided" || val==="correct") return ["Received","Yes"];
+  if(val==="no" || val==="missing" || val==="incorrect") return ["Yet to Receive","No"];
+  if(val==="multiple") return ["Received","No"];
+  return ["NA","NA"];
+}
+
+function addChecklistRow(rows,point,complete,correct,details){
+  rows.push([point,complete,correct,details || ""]);
+}
+
+function buildChecklistRows(){
+  var rows=[["Campaign Intake Document Check","Input completeness","Input Correctness","Details"]];
+
+  var brandProvided=v("brandProvided");
+  var actualBrand=v("brandName").trim();
+  var brandReceived=brandProvided==="yes";
+  var brandCorrect=brandProvided==="yes" && !!actualBrand;
+  addChecklistRow(rows,"Brand Name",
+    brandReceived ? "Received" : brandProvided==="no" ? "Yet to Receive" : "NA",
+    brandCorrect ? "Yes" : brandProvided==="no" ? "No" : "NA",
+    brandReceived ? (actualBrand || "Brand Name not entered") : brandProvided==="no" ? "Not Provided" : "Not selected");
+
+  addChecklistRow(rows,"BU Unit",
+    v("buUnit") ? "Received" : "NA",
+    v("buUnit") ? "Yes" : "NA",
+    v("buUnit") || "Not captured / not provided in tool");
+
+  addChecklistRow(rows,"Campaign Name/Journey Name",
+    v("campaignJourneyName") ? "Received" : "NA",
+    v("campaignJourneyName") ? "Yes" : "NA",
+    v("campaignJourneyName") || "Not captured / not provided in tool");
+
+  getEmailNameRows().forEach(function(x){
+    addChecklistRow(rows,x[0],
+      x[1] ? "Received" : "Yet to Receive",
+      x[1] ? "Yes" : "No",
+      x[1] || "Not Provided");
+  });
+
+  addChecklistRow(rows,"Campaign Name",
+    v("campaignName") ? "Received" : "NA",
+    v("campaignName") ? "Yes" : "NA",
+    v("campaignName") || "Not captured / not provided in tool");
+
+  var id=v("initialDate"), it=v("initialTime");
+  var initialDateActual=v("initialDateValue"), initialTimeActual=time12("initialTime");
+  var launchReceived=(id==="provided" && it==="provided") ? "Received" : (id || it) ? "Yet to Receive" : "NA";
+  var launchCorrect=(id==="provided" && it==="provided" && initialDateActual && initialTimeActual) ? "Yes" : (id || it) ? "No" : "NA";
+  addChecklistRow(rows,"Launch Date & Time",launchReceived,launchCorrect,
+    "Date: "+(initialDateActual||"Not provided")+" | Time: "+(initialTimeActual||"Not provided"));
+
+  if(v("reminder")==="yes"){
+    var rd=v("remDate"), rt=v("remTime");
+    var reminderDateActual=v("remDateValue"), reminderTimeActual=time12("remTime");
+    var reminderReceived=(rd==="provided" && rt==="provided") ? "Received" : (rd || rt) ? "Yet to Receive" : "NA";
+    var reminderCorrect=(rd==="provided" && rt==="provided" && reminderDateActual && reminderTimeActual) ? "Yes" : (rd || rt) ? "No" : "NA";
+    addChecklistRow(rows,"Reminder Email Launch date",
+      reminderReceived,
+      reminderCorrect,
+      "Date: "+(reminderDateActual||"Not provided")+" | Time: "+(reminderTimeActual||"Not provided"));
+  }else{
+    addChecklistRow(rows,"Reminder Email Launch date","NA","NA","No Reminder email");
+  }
+
+  addChecklistRow(rows,"Resend Email to Non-Openers",
+    v("resendNonOpeners") ? "Received" : "NA",
+    v("resendNonOpeners")==="yes" ? "Yes" : v("resendNonOpeners")==="no" ? "No" : "NA",
+    selectedText("resendNonOpeners") || "Not selected");
+
+  addChecklistRow(rows,"PDF/PSD of email content provided",
+    v("images") ? "Received" : "NA",
+    v("images")==="yes" ? "Yes" : v("images") ? "No" : "NA",
+    selectedText("images") || "Not selected");
+
+  addChecklistRow(rows,"URL provided",
+    v("links") ? "Received" : "NA",
+    v("links")==="yes" ? "Yes" : v("links") ? "No" : "NA",
+    (selectedText("links")||"Not selected")+(v("linkDetail") ? " | "+v("linkDetail") : ""));
+
+  addChecklistRow(rows,"Mobile version provided","NA","NA",
+    v("mobile")==="yes" ? "Mobile number present; clickable tel: link will be used." :
+    v("mobile")==="no" ? "Mobile number not present." : "Not selected");
+
+  function displaySLPH(statusId,valueId,label){
+    var status=selectedText(statusId)||"Not selected";
+    var value=v(valueId).trim();
+    return label+": "+status+(status==="Provided" ? " | "+(value||"Value not entered") : "");
+  }
+
+  var slRows=[];
+  var phRows=[];
+  if(v("abTest")==="yes"){
+    slRows.push(displaySLPH("aSL","aSLValue","Initial A"),displaySLPH("bSL","bSLValue","Initial B"));
+    phRows.push(displaySLPH("aPH","aPHValue","Initial A"),displaySLPH("bPH","bPHValue","Initial B"));
+    if(v("reminder")==="yes"){
+      slRows.push(displaySLPH("arSL","arSLValue","Reminder A"),displaySLPH("brSL","brSLValue","Reminder B"));
+      phRows.push(displaySLPH("arPH","arPHValue","Reminder A"),displaySLPH("brPH","brPHValue","Reminder B"));
+    }
+  }else if(v("reminder")==="yes"){
+    slRows.push(displaySLPH("iRSL","iRSLValue","Initial"),displaySLPH("rSL","rSLValue","Reminder"));
+    phRows.push(displaySLPH("iRPH","iRPHValue","Initial"),displaySLPH("rPH","rPHValue","Reminder"));
+  }else{
+    slRows.push(displaySLPH("initialSL","initialSLValue","Initial"));
+    phRows.push(displaySLPH("initialPH","initialPHValue","Initial"));
+  }
+  var slValues=(v("abTest")==="yes") ? [v("aSL"),v("bSL")] : (v("reminder")==="yes") ? [v("iRSL"),v("rSL")] : [v("initialSL")];
+  var phValues=(v("abTest")==="yes") ? [v("aPH"),v("bPH")] : (v("reminder")==="yes") ? [v("iRPH"),v("rPH")] : [v("initialPH")];
+  var slBad=slValues.some(function(x){return x==="missing"||x==="multiple"});
+  var phBad=phValues.some(function(x){return x==="missing"||x==="multiple"});
+  addChecklistRow(rows,"Subject line",slValues.some(Boolean)?"Received":"NA",slBad?"No":slValues.some(Boolean)?"Yes":"NA",slRows.join(" | "));
+  addChecklistRow(rows,"Preheader",phValues.some(Boolean)?"Received":"NA",phBad?"No":phValues.some(Boolean)?"Yes":"NA",phRows.join(" | "));
+
+  var sp=statusFromProvided("senderProfile");
+  addChecklistRow(rows,"Sender Profile details",
+    v("senderProfile")==="correct" ? "Received" : v("senderProfile") ? "Yet to Receive" : "NA",
+    v("senderProfile")==="correct" && v("senderProfileName").trim() ? "Yes" : v("senderProfile") ? "No" : "NA",
+    (selectedText("senderProfile")||"Not selected")+(v("senderProfileName") ? " | Name: "+v("senderProfileName") : ""));
+
+   addChecklistRow(rows,"Exclusion/Suppression List",
+    v("exclusionList")==="yes" ? "Received" : v("exclusionList")==="no" ? "Yet to Receive" : v("exclusionList")==="na" ? "NA" : "NA",
+    v("exclusionList")==="yes" || v("exclusionList")==="na" ? "Yes" : v("exclusionList")==="no" ? "No" : "NA",
+    v("exclusionList") ? selectedText("exclusionList") : "Not selected");
+
+  addChecklistRow(rows,"Journey road map given",
+    v("journeyRoadmap")==="yes" ? "Received" : v("journeyRoadmap")==="no" ? "Yet to Receive" : v("journeyRoadmap")==="na" ? "NA" : "NA",
+    v("journeyRoadmap")==="yes" || v("journeyRoadmap")==="na" ? "Yes" : v("journeyRoadmap")==="no" ? "No" : "NA",
+    v("journeyRoadmap") ? selectedText("journeyRoadmap") : "Not selected");
+
+  addChecklistRow(rows,"Figma URL",
+    v("figmaUrl").trim() ? "Received" : "Yet to Receive",
+    v("figmaUrl").trim() ? "Yes" : "No",
+    v("figmaUrl").trim() || "Not Provided");
+
+  var ta=v("ta");
+  var taComplete=ta==="yes"?"Received":ta==="no"?"Yet to Receive":"NA";
+  var taCorrect=ta==="yes" && v("contactId")==="no" ? "No" : ta==="yes" ? "Yes" : ta==="no" ? "No" : "NA";
+  var taDetail=selectedText("ta")||"Not selected";
+  if(ta==="no" && v("taAzure")) taDetail+=" | Azure TA: "+selectedText("taAzure");
+  if(ta==="yes" && v("contactId")) taDetail+=" | Contact IDs: "+selectedText("contactId");
+  addChecklistRow(rows,"Target audience",taComplete,taCorrect,taDetail);
+
+  var unsubDetails="Not selected";
+  var unsubReceived="NA";
+  var unsubCorrect="NA";
+
+  if(v("unsubscribe")==="unsubscribe"){
+    if(v("unsubscribeUrlType")==="standard"){
+      unsubDetails="Unsubscribe | Standard Radiology Unsubscribe: %%=cloudpageurl(1146)=%%";
+      unsubReceived="Received"; unsubCorrect="Yes";
+    }else if(v("unsubscribeUrlType")==="other"){
+      unsubDetails="Unsubscribe | Other: "+(v("unsubscribeUrl").trim()||"Not Provided");
+      unsubReceived=v("unsubscribeUrl").trim()?"Received":"Yet to Receive";
+      unsubCorrect=v("unsubscribeUrl").trim()?"Yes":"No";
+    }else{
+      unsubDetails="Unsubscribe | URL type not selected";
+      unsubReceived="Yet to Receive"; unsubCorrect="No";
+    }
+  }else if(v("unsubscribe")==="update"){
+    if(v("updateUrlType")==="standard"){
+      unsubDetails="Update Preferences | Standard Radiology Unsubscribe: %%=cloudpageurl(1146)=%% | HTML Confirmation Query";
+      unsubReceived="Received"; unsubCorrect="Yes";
+    }else if(v("updateUrlType")==="other"){
+      unsubDetails="Update Preferences | Other: "+(v("updateUrl").trim()||"Not Provided")+" | HTML Confirmation Query";
+      unsubReceived=v("updateUrl").trim()?"Received":"Yet to Receive";
+      unsubCorrect=v("updateUrl").trim()?"Yes":"No";
+    }else{
+      unsubDetails="Update Preferences | URL type not selected | HTML Confirmation Query";
+      unsubReceived="Yet to Receive"; unsubCorrect="No";
+    }
+  }else if(v("unsubscribe")==="no"){
+    unsubDetails="Not Present | Confirmation: "+(v("unsubscribeConfirmation")==="yes" ? "Required" : v("unsubscribeConfirmation")==="no" ? "Not Required" : "Not Selected");
+    unsubReceived="Yet to Receive"; unsubCorrect="No";
+  }
+
+  addChecklistRow(rows,"Unsub / Update Preference",
+    unsubReceived,unsubCorrect,unsubDetails);
+
+  addChecklistRow(rows,"Mobile version provided",
+    v("mobileVersion")==="yes" ? "Received" : v("mobileVersion")==="no" ? "Yet to Receive" : "NA",
+    v("mobileVersion")==="yes" ? "Yes" : v("mobileVersion")==="no" ? "No" : "NA",
+    selectedText("mobileVersion") || "Not selected");
+
+  var asset=v("assetPrt"), azure=v("azurePrt");
+  var prtComplete=(asset||azure) ? "Received" : "NA";
+  var prtCorrect=(asset&&azure) ? (asset.trim()===azure.trim()?"Yes":"No") : "NA";
+  addChecklistRow(rows,"PRT Code",prtComplete,prtCorrect,
+    "Figma/PDF: "+(asset||"Not provided")+" | Azure: "+(azure||"Not provided"));
+
+  addChecklistRow(rows,"A/B testing",
+    v("abTest") ? "Received" : "NA",
+    v("abTest") ? "Yes" : "NA",
+    selectedText("abTest") || "Not selected");
+
+  addChecklistRow(rows,"UTM Parameters",
+    v("utm") ? "Received" : "NA",
+    v("utm")==="yes" ? "Yes" : v("utm") ? "No" : "NA",
+    selectedText("utm") || "Not selected");
+
+  addChecklistRow(rows,"Bayer Address",
+    v("address") ? "Received" : "NA",
+    v("address")==="yes" ? "Yes" : v("address") ? "No" : "NA",
+    selectedText("address") || "Not selected");
+
+  return rows;
+}
+
+function exportXlsx(){
+  if(typeof XLSX==="undefined"){
+    alert("XLSX export library could not be loaded. Please open the tool with an internet connection and try again.");
+    return;
+  }
+
+  var rows=buildChecklistRows();
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+
+  var purple="A64CA6", darkPurple="7E2F86", lightPurple="F4EAF6";
+  var veryLight="FAF7FB", borderColor="B8A8BA", white="FFFFFF";
+  var green="E8F5E9", greenText="2E7D32", red="FDECEC", redText="B42318";
+  var gray="F2F4F7", grayText="667085";
+
+  var thinBorder={
+    top:{style:"thin",color:{rgb:borderColor}},
+    bottom:{style:"thin",color:{rgb:borderColor}},
+    left:{style:"thin",color:{rgb:borderColor}},
+    right:{style:"thin",color:{rgb:borderColor}}
+  };
+
+  for(var c=0;c<4;c++){
+    var cell=ws[XLSX.utils.encode_cell({r:0,c:c})];
+    cell.s={
+      fill:{fgColor:{rgb:purple}},
+      font:{bold:true,color:{rgb:white},sz:12,name:"Aptos"},
+      alignment:{horizontal:"center",vertical:"center",wrapText:true},
+      border:thinBorder
+    };
+  }
+
+  for(var r=1;r<rows.length;r++){
+    for(var c2=0;c2<4;c2++){
+      var ref=XLSX.utils.encode_cell({r:r,c:c2});
+      var cell2=ws[ref];
+      if(!cell2) continue;
+
+      cell2.s={
+        fill:{fgColor:{rgb:(r%2===0)?veryLight:white}},
+        font:{color:{rgb:"172033"},sz:10,name:"Aptos"},
+        alignment:{vertical:"top",wrapText:true},
+        border:thinBorder
+      };
+
+      if(c2===0) cell2.s.font={bold:true,color:{rgb:"344054"},sz:10,name:"Aptos"};
+      if(c2===1 || c2===2) cell2.s.alignment={horizontal:"center",vertical:"top",wrapText:true};
+
+      if(c2===1){
+        var status=String(cell2.v||"");
+        if(status==="Received"){
+          cell2.s.fill={fgColor:{rgb:green}};
+          cell2.s.font={bold:true,color:{rgb:greenText},sz:10,name:"Aptos"};
+        }else if(status==="Yet to Receive"){
+          cell2.s.fill={fgColor:{rgb:red}};
+          cell2.s.font={bold:true,color:{rgb:redText},sz:10,name:"Aptos"};
+        }else if(status==="NA"){
+          cell2.s.fill={fgColor:{rgb:gray}};
+          cell2.s.font={color:{rgb:grayText},italic:true,sz:10,name:"Aptos"};
+        }
+      }
+
+      if(c2===2){
+        var correctness=String(cell2.v||"");
+        if(correctness==="Yes"){
+          cell2.s.fill={fgColor:{rgb:green}};
+          cell2.s.font={bold:true,color:{rgb:greenText},sz:10,name:"Aptos"};
+        }else if(correctness==="No"){
+          cell2.s.fill={fgColor:{rgb:red}};
+          cell2.s.font={bold:true,color:{rgb:redText},sz:10,name:"Aptos"};
+        }else if(correctness==="NA"){
+          cell2.s.fill={fgColor:{rgb:gray}};
+          cell2.s.font={color:{rgb:grayText},italic:true,sz:10,name:"Aptos"};
+        }
+      }
+    }
+  }
+
+  ws["!cols"]=[{wch:39},{wch:20},{wch:20},{wch:82}];
+  ws["!rows"]=[{hpt:32}];
+  for(var rh=1;rh<rows.length;rh++) ws["!rows"].push({hpt:34});
+  ws["!freeze"]={xSplit:0,ySplit:1};
+  ws["!autofilter"]={ref:"A1:D"+rows.length};
+  ws["!pageSetup"]={orientation:"landscape",paperSize:9,fitToWidth:1,fitToHeight:0};
+  ws["!margins"]={left:0.25,right:0.25,top:0.5,bottom:0.5,header:0.2,footer:0.2};
+
+  var wb=XLSX.utils.book_new();
+  var name=v("campaignName")||v("campaignJourneyName")||"Campaign Intake";
+  var brand=v("brandName").trim();
+
+  var titleRows=[
+    ["CAMPAIGN INTAKE CHECKLIST",""],
+    ["Campaign / Journey",v("campaignJourneyName")||"Not provided"],
+    ["Brand",v("brandProvided")==="yes" ? (brand||"Name not entered") : v("brandProvided")==="no" ? "Not Provided" : "Not selected"],
+    ["BU Unit",v("buUnit")||"Not provided"],
+    ["Email Name(s)",getEmailNameRows().filter(function(x){return x[1];}).map(function(x){return x[0]+": "+x[1];}).join(" | ")||"Not provided"],
+    ["Generated",new Date().toLocaleString()],
+    ["",""],
+    ["Use the 'Intake Checklist' sheet for the detailed checklist.",""]
+  ];
+  var titleWs=XLSX.utils.aoa_to_sheet(titleRows);
+  titleWs["!merges"]=[{s:{r:0,c:0},e:{r:0,c:1}}];
+  titleWs["A1"].s={
+    fill:{fgColor:{rgb:purple}},
+    font:{bold:true,color:{rgb:white},sz:18,name:"Aptos"},
+    alignment:{vertical:"center"}
+  };
+  for(var tr=1;tr<=5;tr++){
+    titleWs["A"+(tr+1)].s={
+      fill:{fgColor:{rgb:lightPurple}},
+      font:{bold:true,color:{rgb:darkPurple},sz:10,name:"Aptos"},
+      border:thinBorder
+    };
+    titleWs["B"+(tr+1)].s={
+      font:{color:{rgb:"172033"},sz:10,name:"Aptos"},
+      border:thinBorder
+    };
+  }
+  titleWs["!cols"]=[{wch:25},{wch:75}];
+  titleWs["!rows"]=[{hpt:34},{hpt:22},{hpt:22},{hpt:22},{hpt:22},{hpt:22},{hpt:10},{hpt:22}];
+
+  XLSX.utils.book_append_sheet(wb,titleWs,"Summary");
+  XLSX.utils.book_append_sheet(wb,ws,"Intake Checklist");
+  XLSX.writeFile(wb,safeFilePart(name)+"_Intake_Checklist.xlsx");
+}
+
+function getIssueItems(){
+  var items=[];
+  var sf=$("sfmcOutput").textContent.trim();
+  var ht=$("htmlOutput").textContent.trim();
+  if(sf && !sf.startsWith("No queries generated")) sf.split(/\n\s*\n/).forEach(function(x){if(x.trim())items.push({category:"SFMC",text:x.replace(/^\d+\.\s*/,"").trim()})});
+  if(ht && !ht.startsWith("No queries generated")) ht.split(/\n\s*\n/).forEach(function(x){if(x.trim())items.push({category:"HTML",text:x.replace(/^\d+\.\s*/,"").trim()})});
+  return items;
+}
+
+function exportDocx(){
+  var issues=getIssueItems();
+  var campaign=v("campaignName")||v("campaignJourneyName")||"Campaign Intake";
+
+  function esc(s){
+    return String(s==null?"":s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&apos;");
+  }
+
+  function p(text,bold,size,after){
+    var rpr=(bold?"<w:b/>":"")+(size?'<w:sz w:val="'+size+'"/><w:szCs w:val="'+size+'"/>':"");
+    return '<w:p><w:pPr><w:spacing w:after="'+(after||160)+'"/></w:pPr><w:r><w:rPr>'+
+      rpr+'</w:rPr><w:t xml:space="preserve">'+esc(text)+'</w:t></w:r></w:p>';
+  }
+
+  var sfmc=issues.filter(function(x){return String(x.category).toUpperCase()==="SFMC";});
+  var htmlIssues=issues.filter(function(x){return String(x.category).toUpperCase()==="HTML";});
+
+  var body="";
+
+  if(!sfmc.length && !htmlIssues.length){
+    body+=p("No issues or client queries were found based on the selected intake inputs.",false,22,160);
+  }else{
+    if(sfmc.length){
+      body+=p("SFMC QUERIES",true,28,180);
+      sfmc.forEach(function(issue,i){
+        body+=p((i+1)+". "+issue.text,false,22,140);
+      });
+    }
+
+    if(htmlIssues.length){
+      body+=p("HTML QUERIES",true,28,180);
+      htmlIssues.forEach(function(issue,i){
+        body+=p((i+1)+". "+issue.text,false,22,140);
+      });
+    }
+  }
+
+  var documentXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'+
+    '<w:body>'+body+
+    '<w:sectPr>'+
+      '<w:pgSz w:w="12240" w:h="15840"/>'+
+      '<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/>'+
+    '</w:sectPr>'+
+    '</w:body></w:document>';
+
+  var contentTypes='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+      '<Default Extension="xml" ContentType="application/xml"/>'+
+      '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'+
+    '</Types>';
+
+  var rootRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+      '<Relationship Id="rId1" '+
+        'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" '+
+        'Target="word/document.xml"/>'+
+    '</Relationships>';
+
+  var files=[
+    ["[Content_Types].xml",contentTypes],
+    ["_rels/.rels",rootRels],
+    ["word/document.xml",documentXml]
+  ];
+
+  function u8(s){return new TextEncoder().encode(s)}
+  function u16(n){return new Uint8Array([n&255,(n>>>8)&255])}
+  function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255])}
+  function cat(arr){
+    var len=0;arr.forEach(function(a){len+=a.length});
+    var o=new Uint8Array(len),p=0;
+    arr.forEach(function(a){o.set(a,p);p+=a.length});
+    return o;
+  }
+  function crc32(bytes){
+    if(!crc32.t){
+      crc32.t=[];
+      for(var n=0;n<256;n++){
+        var c=n;
+        for(var k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);
+        crc32.t[n]=c>>>0;
+      }
+    }
+    var c=0xFFFFFFFF;
+    for(var i=0;i<bytes.length;i++) c=crc32.t[(c^bytes[i])&255]^(c>>>8);
+    return (c^0xFFFFFFFF)>>>0;
+  }
+
+  var localParts=[],centralParts=[],offset=0;
+  files.forEach(function(f){
+    var name=u8(f[0]),data=u8(f[1]),crc=crc32(data);
+    var local=cat([
+      new Uint8Array([0x50,0x4b,0x03,0x04]),
+      u16(20),u16(0x0800),u16(0),u16(0),u16(0),
+      u32(crc),u32(data.length),u32(data.length),
+      u16(name.length),u16(0),name,data
+    ]);
+    localParts.push(local);
+
+    var central=cat([
+      new Uint8Array([0x50,0x4b,0x01,0x02]),
+      u16(20),u16(20),u16(0x0800),u16(0),u16(0),u16(0),
+      u32(crc),u32(data.length),u32(data.length),
+      u16(name.length),u16(0),u16(0),u16(0),u16(0),
+      u32(0),u32(offset),name
+    ]);
+    centralParts.push(central);
+    offset+=local.length;
+  });
+
+  var centralSize=centralParts.reduce(function(s,a){return s+a.length},0);
+  var eocd=cat([
+    new Uint8Array([0x50,0x4b,0x05,0x06]),
+    u16(0),u16(0),u16(files.length),u16(files.length),
+    u32(centralSize),u32(offset),u16(0)
+  ]);
+
+  var zip=cat(localParts.concat(centralParts,[eocd]));
+  var blob=new Blob([zip],{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+  downloadBlob(blob,safeFilePart(campaign)+"_Issues_Found.docx");
+}
+
+var GEMINI_KEY_STORAGE="campaignIntake_geminiApiKey_v1";
+function aiGetKey(){
+  return String(($("geminiApiKey")&&$("geminiApiKey").value)||"").trim();
+}
+function loadSavedGeminiKey(){
+  try{
+    var saved=localStorage.getItem(GEMINI_KEY_STORAGE)||"";
+    if(saved && $("geminiApiKey")) $("geminiApiKey").value=saved;
+    if(saved) aiSetStatus("A Gemini API key is saved in this browser. It is not stored in the HTML file.",false);
+  }catch(e){}
+}
+function saveGeminiKey(){
+  var key=aiGetKey();
+  try{
+    if(key)localStorage.setItem(GEMINI_KEY_STORAGE,key);
+    else localStorage.removeItem(GEMINI_KEY_STORAGE);
+  }catch(e){}
+}
+function clearSavedGeminiKey(){
+  try{localStorage.removeItem(GEMINI_KEY_STORAGE)}catch(e){}
+  if($("geminiApiKey"))$("geminiApiKey").value="";
+  aiSetStatus("Saved Gemini API key cleared from this browser.",false);
+}
+function aiGetModel(){return (($('aiModel')&&$('aiModel').value)||"gemini-3.5-flash-lite").trim()||"gemini-3.5-flash-lite"}
+function aiSetStatus(msg,isError){
+  var el=$("aiStatus"); if(!el)return;
+  el.textContent=msg; el.style.color=isError?"#b42318":"#667085";
+}
+function aiSetBusy(button,busy,label){
+  if(!button)return;
+  if(busy){button.dataset.oldText=button.textContent;button.textContent="Rephrasing…";button.classList.add("aiBusy");}
+  else{button.textContent=button.dataset.oldText||label;button.classList.remove("aiBusy");}
+}
+function extractAiText(data){
+  if(data && typeof data.output_text==="string") return data.output_text.trim();
+  var out=[];
+  if(data && Array.isArray(data.steps)){
+    data.steps.forEach(function(step){
+      if(step && step.type==="model_output" && Array.isArray(step.content)){
+        step.content.forEach(function(c){if(c && typeof c.text==="string")out.push(c.text);});
+      }
+    });
+  }
+  if(data && Array.isArray(data.output)){
+    data.output.forEach(function(item){
+      if(item && Array.isArray(item.content)) item.content.forEach(function(c){if(c && typeof c.text==="string")out.push(c.text)});
+    });
+  }
+  return out.join("\n").trim();
+}
+async function callGeminiRephrase(text,instructions){
+  var key=aiGetKey();
+  if(!key)throw new Error("Please enter a Gemini API key first.");
+  if(!text.trim())throw new Error("There is no text to rephrase.");
+  var prompt=instructions+"\n\nText to rephrase:\n"+text;
+  var model=aiGetModel();
+  var res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(model)+":generateContent",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","x-goog-api-key":key},
+    body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
+  });
+  var data={};
+  try{data=await res.json()}catch(e){}
+  if(!res.ok){
+    var msg=(data && data.error && data.error.message)||("Gemini API request failed (HTTP "+res.status+").");
+    throw new Error(msg);
+  }
+  var result="";
+  if(data && Array.isArray(data.candidates)){
+    data.candidates.forEach(function(candidate){
+      if(candidate && candidate.content && Array.isArray(candidate.content.parts)){
+        candidate.content.parts.forEach(function(part){if(part && typeof part.text==="string")result+=part.text;});
+      }
+    });
+  }
+  result=result.trim();
+  if(!result)throw new Error("The AI returned an empty response.");
+  return result;
+}
+function isQueryPlaceholder(text){
+  var t=String(text||"").trim().replace(/^\s*\d+\.\s*/,"").trim();
+  return /^No (?:SFMC|HTML) queries generated from the selected inputs\.?$/i.test(t) || /^No queries generated from the selected inputs\.?$/i.test(t);
+}
+function queryTextForAi(id){
+  var el=$(id),text=el?el.textContent.trim():"";
+  if(!text || isQueryPlaceholder(text))return "";
+  return text;
+}
+function cleanPickedQueryText(text){
+  var raw=String(text||"").trim();
+  if(!raw)return "";
+  var parts=raw.split(/\n\s*\n/).map(function(x){return x.trim()}).filter(Boolean);
+  var kept=[];
+  parts.forEach(function(part){
+    if(isQueryPlaceholder(part))return;
+    kept.push(part);
+  });
+  return kept.map(function(part,i){
+    return (i+1)+". "+part.replace(/^\s*\d+\.\s*/,"").trim();
+  }).join("\n\n");
+}
+function showAiResult(outputId,buttonsId,text){
+  var out=$(outputId),btns=$(buttonsId); if(!out)return;
+  out.textContent=text; out.classList.remove("hidden","empty");
+  if(btns)btns.classList.remove("hidden");
+}
+function pickAiResult(sourceId,aiOutputId,buttonId,label){
+  var source=$(sourceId),ai=$(aiOutputId),button=$(buttonId),btns=$(buttonId)?$(buttonId).parentElement:null;
+  if(!source || !ai || !ai.textContent.trim())return;
+  var cleaned=cleanPickedQueryText(ai.textContent);
+  if(!cleaned){
+    ai.classList.add("hidden");
+    if(btns)btns.classList.add("hidden");
+    aiSetStatus("No actual "+label+" queries were returned, so the placeholder was not added.",false);
+    return;
+  }
+  source.textContent=cleaned;
+  source.classList.remove("empty");
+  if(button){
+    var old=button.textContent;
+    button.textContent="Picked ✓";
+    setTimeout(function(){button.textContent=old},1200);
+  }
+  ai.classList.add("hidden");
+  if(btns)btns.classList.add("hidden");
+  aiSetStatus(label+" rephrased queries are now the active output. Copies and exports will use them.",false);
+}
+async function rephraseQueryGroup(sourceId,outputId,buttonsId,button,groupName){
+  var text=queryTextForAi(sourceId);
+  if(!text){alert("There are no "+groupName+" queries to rephrase.");return "";}
+  aiSetBusy(button,true,"");aiSetStatus("Rephrasing "+groupName+" queries…",false);
+  try{
+    var result=await callGeminiRephrase(text,
+      "Rewrite each query as a short, natural client-facing request. Do not simply paraphrase the original sentence. First identify the action the client needs to take (for example, provide, confirm, select, or clarify), then write that request directly. Make it sound like a normal person writing to a client in everyday professional English—not like AI, a formal report, or legal language. Prefer one clear sentence when possible. If two closely related points belong together, combine them naturally instead of using “Also” or repeating the subject. Use “Please provide…”, “Please confirm…”, or “Please confirm whether…” when appropriate, but do not force these phrases into every query. Keep important details such as dates, times, values, names, and technical terms. Remove filler, repetition, unnecessary context, and phrases such as “has been mentioned as”, “we would like to request”, “kindly provide the necessary clarification”, “please confirm whether it is intended that”, or similar wording. Do not add assumptions, recommendations, explanations, or new information. Keep the same number of numbered queries and each query as a separate paragraph. Examples of the desired style: “Please provide the launch date and confirm whether 12 AM is the correct launch time in Azure.” “Please provide the Subject Line and Preheader.” “Please confirm which Subject Line should be used for Variant A.” Return only the rephrased queries, with no introduction or explanation.");
+    showAiResult(outputId,buttonsId,result);aiSetStatus(groupName+" queries rephrased successfully.",false);return result;
+  }catch(err){aiSetStatus(err.message,true);alert("AI rephrasing failed: "+err.message);return ""}
+  finally{aiSetBusy(button,false,"")}
+}
+async function rephraseObservations(){
+  var raw=$("customObservations").value||"";
+  var lines=raw.split(/\r?\n/).map(function(x){return x.trim()}).filter(Boolean);
+  if(!lines.length){alert("Please enter at least one observation.");return ""}
+  var btn=$("rephraseObservations");aiSetBusy(btn,true,"");aiSetStatus("Rephrasing additional observations…",false);
+  try{
+    var numbered=lines.map(function(x,i){return (i+1)+". "+x}).join("\n");
+    var result=await callGeminiRephrase(numbered,
+      "Rewrite each observation as a short, natural client-facing request. Do not simply paraphrase the observation. Identify what the client needs to do and state that request directly. Make it sound like a normal person writing to a client in everyday professional English—not like AI, a formal report, or legal language. Prefer one clear sentence when possible. Combine closely related points naturally instead of using “Also” or repeating information. Use “Please provide…”, “Please confirm…”, or “Please confirm whether…” when appropriate, but do not force these phrases into every query. Keep important details such as dates, times, values, names, and technical terms. Remove filler, repetition, unnecessary context, and phrases such as “has been mentioned as”, “we would like to request”, “kindly provide the necessary clarification”, “please confirm whether it is intended that”, or similar wording. Do not add assumptions, recommendations, explanations, or new information. Examples of the desired style: “Please provide the launch date and confirm whether 12 AM is the correct launch time in Azure.” “Please provide the Subject Line and Preheader.” “Please confirm which Subject Line should be used for Variant A.” Then classify where the query belongs. For every numbered line, start the output exactly with [SFMC] or [HTML], followed by the same query number. Use [SFMC] for Marketing Cloud / SFMC setup, data, journey, audience, send, subject line, preheader, scheduling, tracking, subscriber, or configuration questions. Use [HTML] for email creative, visual design, layout, links, images, footer, mobile rendering, spacing, typography, or HTML implementation questions. Keep the exact number of queries and numbering. Return only the classified, rephrased numbered queries.");
+    var clean=result.replace(/^\s*\[(?:SFMC|HTML)\]\s*/gim,"");
+    var aiOut=$("observationAiOutput");
+    aiOut.dataset.classified=result;
+    showAiResult("observationAiOutput","observationAiBtns",clean);
+    aiSetStatus("Additional observations rephrased successfully. Pick will place each query in SFMC or HTML automatically.",false);return result;
+  }catch(err){aiSetStatus(err.message,true);alert("AI rephrasing failed: "+err.message);return ""}
+  finally{aiSetBusy(btn,false,"")}
+}
+function normalizeQueryText(text){
+  return String(text||"").replace(/^\s*\d+\.\s*/,"").replace(/^\s*\[(?:SFMC|HTML)\]\s*/i,"").trim().replace(/\s+/g," ").toLowerCase();
+}
+function appendPickedQueries(targetId,items){
+  var target=$(targetId); if(!target || !items.length)return 0;
+  var current=target.textContent.trim();
+  var existing=[];
+  if(current && !isQueryPlaceholder(current)){
+    existing=current.split(/\n\s*\n/).map(function(x){return x.trim()}).filter(function(x){return x && !isQueryPlaceholder(x)}).map(normalizeQueryText).filter(Boolean);
+  }
+  var additions=[];
+  items.forEach(function(item){
+    var clean=String(item.text||"").replace(/^\s*\d+\.\s*/,"").trim();
+    if(isQueryPlaceholder(clean))return;
+    var key=normalizeQueryText(clean);
+    if(!key || existing.indexOf(key)!==-1 || additions.some(function(x){return normalizeQueryText(x)===key}))return;
+    additions.push(clean);
+  });
+  if(!additions.length)return 0;
+  var all=[];
+  if(current && !isQueryPlaceholder(current)){
+    current.split(/\n\s*\n/).map(function(x){return x.trim()}).filter(function(x){return x && !isQueryPlaceholder(x)}).forEach(function(x){all.push(x.replace(/^\s*\d+\.\s*/,"").trim())});
+  }
+  all=all.concat(additions);
+  target.textContent=all.map(function(x,i){return (i+1)+". "+String(x).replace(/^\s*\d+\.\s*/,"").trim()}).join("\n\n");
+  target.classList.remove("empty");
+  return additions.length;
+}
+function queryContextMatches(existing,incoming){
+  var e=String(existing||"").toLowerCase();
+  var i=String(incoming||"").toLowerCase();
+  var hasInitial=/\binitial\b/.test(i), hasReminder=/\breminder\b/.test(i);
+  var hasA=/\bvariant\s*a\b|\breminder\s*a\b/.test(i), hasB=/\bvariant\s*b\b|\breminder\s*b\b/.test(i);
+  if(hasInitial && !hasReminder && /\breminder\b/.test(e)) return false;
+  if(hasReminder && !hasInitial && /\binitial\b/.test(e)) return false;
+  if(hasA && !hasB && /\bvariant\s*b\b|\breminder\s*b\b/.test(e)) return false;
+  if(hasB && !hasA && /\bvariant\s*a\b|\breminder\s*a\b/.test(e)) return false;
+  return true;
+}
+function queryReplacementMatches(existing,incoming){
+  var e=String(existing||"").toLowerCase(), i=String(incoming||"").toLowerCase();
+  if(!queryContextMatches(e,i))return false;
+
+  // A combined Date + Time observation replaces separate Date and Time queries.
+  // Match both singular and plural wording (date/dates, time/times).
+  if(/\bdates?\b/.test(i) && /\btimes?\b/.test(i))
+    return /\bdates?\b|\btimes?\b/.test(e);
+
+  // A combined Subject Line + Preheader observation replaces separate SL/PH queries.
+  if(/subject\s*line/.test(i) && /preheader/.test(i))
+    return /subject\s*line|preheader/.test(e);
+
+  if(/subject\s*line/.test(i))return /subject\s*line/.test(e);
+  if(/preheader/.test(i))return /preheader/.test(e);
+  if(/resend.*non[- ]?open|non[- ]?open.*resend/.test(i))return /resend|non[- ]?open/.test(e);
+  if(/\bprt\b/.test(i))return /\bprt\b/.test(e);
+  if(/sender\s*profile/.test(i))return /sender\s*profile/.test(e);
+  if(/brand\s*name/.test(i))return /brand\s*name/.test(e);
+  if(/target\s*audience|\bta\b|contact\s*id/.test(i))return /target\s*audience|\bta\b|contact\s*id/.test(e);
+  if(/journey\s*name|email\s*name/.test(i))return /journey\s*name|email\s*name/.test(e);
+  if(/unsubscribe|update\s*preference/.test(i))return /unsubscribe|update\s*preference/.test(e);
+  if(/utm/.test(i))return /utm/.test(e);
+  if(/\bfigma\b|\bpdf\b|\bpsd\b|image/.test(i))return /\bfigma\b|\bpdf\b|\bpsd\b|image/.test(e);
+  if(/mobile|tel:/.test(i))return /mobile|tel:/.test(e);
+  if(/\burl\b|\blink\b/.test(i))return /\burl\b|\blink\b/.test(e);
+  return false;
+}
+function replaceOrAppendPickedQueries(targetId,items){
+  var target=$(targetId); if(!target || !items.length)return {added:0,replaced:0};
+  var current=target.textContent.trim();
+  var existing=current && !isQueryPlaceholder(current) ? current.split(/\n\s*\n/).map(function(x){return x.replace(/^\s*\d+\.\s*/,"").trim()}).filter(function(x){return x && !isQueryPlaceholder(x)}) : [];
+  var replaced=0, additions=[];
+  items.forEach(function(item){
+    var clean=String(item.text||"").replace(/^\s*\d+\.\s*/,"").trim();
+    if(!clean || isQueryPlaceholder(clean))return;
+    var kept=[];
+    existing.forEach(function(old){
+      if(queryReplacementMatches(old,clean)){replaced++;}else{kept.push(old)}
+    });
+    existing=kept;
+    var duplicate=existing.some(function(old){return normalizeQueryText(old)===normalizeQueryText(clean)}) || additions.some(function(x){return normalizeQueryText(x)===normalizeQueryText(clean)});
+    if(!duplicate)existing.push(clean);
+  });
+  target.textContent=existing.map(function(x,i){return (i+1)+". "+x}).join("\n\n");
+  target.classList.toggle("empty",!existing.length);
+  return {added:items.length-replaced,replaced:replaced};
+}
+function pickObservationResults(){
+  var ai=$("observationAiOutput"),button=$("pickObservationAi");
+  if(!ai || !ai.textContent.trim())return;
+  var classified=ai.dataset.classified||ai.textContent;
+  var sf=[],html=[];
+  classified.split(/\n\s*(?=(?:\[SFMC\]|\[HTML\])?\s*\d+\.\s*)/).map(function(x){return x.trim()}).filter(Boolean).forEach(function(line){
+    var m=line.match(/^\s*\[(SFMC|HTML)\]\s*\d+\.\s*(.*)$/is);
+    if(!m){
+      var n=line.match(/^\s*\d+\.\s*(.*)$/s);
+      if(n) html.push({text:n[1].trim()});
+      return;
+    }
+    (m[1].toUpperCase()==="SFMC"?sf:html).push({text:m[2].trim()});
+  });
+  var sfResult=replaceOrAppendPickedQueries("sfmcOutput",sf);
+  var htmlResult=replaceOrAppendPickedQueries("htmlOutput",html);
+  if(button){button.textContent="Picked ✓";setTimeout(function(){button.textContent="Pick Rephrased Observations"},1200)}
+  ai.classList.add("hidden");
+  var btns=$("observationAiBtns");if(btns)btns.classList.add("hidden");
+  aiSetStatus("Picked observations were added. If an observation matched an existing issue, the existing issue was replaced; combined observations replace the related separate issues.",false);
+  return {sfmc:sfResult,html:htmlResult};
+}
+async function rephraseAll(){
+  var tasks=[];
+  if(queryTextForAi("sfmcOutput"))tasks.push(rephraseQueryGroup("sfmcOutput","sfmcAiOutput","sfmcAiBtns",$("rephraseSfmc"),"SFMC"));
+  if(queryTextForAi("htmlOutput"))tasks.push(rephraseQueryGroup("htmlOutput","htmlAiOutput","htmlAiBtns",$("rephraseHtml"),"HTML"));
+  if(($('customObservations').value||"").trim())tasks.push(rephraseObservations());
+  if(!tasks.length){alert("There are no generated queries or additional observations to rephrase.");return}
+  await Promise.all(tasks);
+}
+
+function copyText(text,button){
+  function done(){var old=button.textContent;button.textContent="Copied ✓";setTimeout(function(){button.textContent=old},1000)}
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(done).catch(function(){fallback(text,done)})
+  }else fallback(text,done)
+}
+function fallback(text,done){
+  var ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.left="-9999px";document.body.appendChild(ta);ta.select();
+  try{if(document.execCommand("copy"))done();else alert("Copy was blocked. Please copy the text manually.")}catch(e){alert("Copy was blocked. Please copy the text manually.")}
+  document.body.removeChild(ta)
+}
+
+document.querySelectorAll("select,input").forEach(function(el){
+  el.addEventListener("change",function(){syncReminderChoices();visibility();syncUtmBuilder();generate()});
+  el.addEventListener("input",function(){syncReminderChoices();visibility();syncUtmBuilder();generate()});
+});
+
+$("openUtmBuilder").addEventListener("click",function(){
+  $("utmBuilder").classList.remove("hidden");
+  if(!$("utmRows").children.length)addUtmRow();
+});
+$("addUtmRow").addEventListener("click",addUtmRow);
+$("copyUtmLinks").addEventListener("click",function(){
+  var urls=getUtmRows().map(buildUtmLink).filter(Boolean);
+  if(!urls.length){alert("Please enter at least one Link first.");return;}
+  copyText(urls.join("\n"),this);
+});
+$("rephraseSfmc").addEventListener("click",function(){rephraseQueryGroup("sfmcOutput","sfmcAiOutput","sfmcAiBtns",this,"SFMC")});
+$("rephraseHtml").addEventListener("click",function(){rephraseQueryGroup("htmlOutput","htmlAiOutput","htmlAiBtns",this,"HTML")});
+$("rephraseObservations").addEventListener("click",rephraseObservations);
+$("rephraseAll").addEventListener("click",rephraseAll);
+$("copySfmcAi").addEventListener("click",function(){copyText($("sfmcAiOutput").textContent,this)});
+$("pickSfmcAi").addEventListener("click",function(){pickAiResult("sfmcOutput","sfmcAiOutput","pickSfmcAi","SFMC")});
+$("copyHtmlAi").addEventListener("click",function(){copyText($("htmlAiOutput").textContent,this)});
+$("pickHtmlAi").addEventListener("click",function(){pickAiResult("htmlOutput","htmlAiOutput","pickHtmlAi","HTML")});
+$("copyObservationAi").addEventListener("click",function(){copyText($("observationAiOutput").textContent,this)});
+$("pickObservationAi").addEventListener("click",pickObservationResults);
+$("clearObservations").addEventListener("click",function(){$("customObservations").value="";$("observationAiOutput").textContent="";$("observationAiOutput").removeAttribute("data-classified");$("observationAiOutput").classList.add("hidden");$("observationAiBtns").classList.add("hidden")});
+$("copySfmc").addEventListener("click",function(){copyText($("sfmcOutput").textContent,this)});
+$("copyHtml").addEventListener("click",function(){copyText($("htmlOutput").textContent,this)});
+$("exportXlsx").addEventListener("click",exportXlsx);
+$("exportDocx").addEventListener("click",exportDocx);
+$("copyAll").addEventListener("click",function(){
+  var type=v("requestType"),parts=[];
+  if(type==="both")parts.push("SFMC QUERIES\n\n"+$("sfmcOutput").textContent);
+  if(type==="both"||type==="html")parts.push("HTML QUERIES\n\n"+$("htmlOutput").textContent);
+  copyText(parts.join("\n\n"),this)
+});
+$("geminiApiKey").addEventListener("input",function(){saveGeminiKey()});
+$("clearGeminiKey").addEventListener("click",function(){clearSavedGeminiKey()});
+$("reset").addEventListener("click",function(){
+  var savedGeminiKey=( $("geminiApiKey")&&$("geminiApiKey").value )||"";
+  document.querySelectorAll("select,input").forEach(function(el){el.value=""});
+  if($("geminiApiKey"))$("geminiApiKey").value=savedGeminiKey;
+  $("customObservations").value="";
+  ["sfmcAiOutput","htmlAiOutput","observationAiOutput"].forEach(function(id){$(id).textContent="";$(id).classList.add("hidden")});
+  ["sfmcAiBtns","htmlAiBtns","observationAiBtns"].forEach(function(id){$(id).classList.add("hidden")});
+  aiSetStatus("AI rephrasing is optional. Existing query generation works without AI. Enter your Gemini API key above before using AI rephrasing.",false);
+  visibility();syncUtmBuilder();generate()
+});
+loadSavedGeminiKey();
+syncReminderChoices();visibility();syncUtmBuilder();generate();
+})();
+</script>
+</body>
+</html>
